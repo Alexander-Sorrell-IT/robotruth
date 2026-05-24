@@ -39,4 +39,5 @@ class Receipt(BaseModel):
     undisclosed: list[Flag] = []
     unhonored: list[Flag] = []
     parsed_claims: list[str] = []
+    claim_kinds: list[str] = []
     math: str = ""
