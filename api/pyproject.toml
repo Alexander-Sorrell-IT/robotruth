@@ -15,3 +15,9 @@ include = ["robotruth_api*"]
 # Vercel: deploy the FastAPI app (robotruth_api/app.py -> `app`) as one function.
 [tool.vercel]
 entrypoint = "robotruth_api.app:app"
+
+# uv (used by Vercel's Python build) resolves the `robotruth` engine from this
+# repo's robotruth/ subdirectory. pip ignores this block, so local dev (which
+# installs the engine editable from ../robotruth) is unaffected.
+[tool.uv.sources]
+robotruth = { git = "https://github.com/Alexander-Sorrell-IT/robotruth.git", subdirectory = "robotruth", branch = "main" }
