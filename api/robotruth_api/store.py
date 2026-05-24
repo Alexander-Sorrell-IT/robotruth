@@ -8,6 +8,8 @@ from typing import Protocol
 class ReceiptStore(Protocol):
     def put(self, receipt: dict) -> str: ...
     def get(self, rid: str) -> dict | None: ...
+    def add_wall(self, entry: dict) -> None: ...
+    def wall(self, limit: int = 30) -> list[dict]: ...
 
 
 def _new_id() -> str:
@@ -30,6 +32,16 @@ class FileStore:
             return None
         return json.loads(p.read_text())
 
+    def add_wall(self, entry: dict) -> None:
+        p = self.root / "_wall.json"
+        items = json.loads(p.read_text()) if p.exists() else []
+        items.insert(0, entry)
+        p.write_text(json.dumps(items[:50]))
+
+    def wall(self, limit: int = 30) -> list[dict]:
+        p = self.root / "_wall.json"
+        return json.loads(p.read_text())[:limit] if p.exists() else []
+
 
 class RedisStore:
     def __init__(self, url: str) -> None:
@@ -44,3 +56,10 @@ class RedisStore:
     def get(self, rid: str) -> dict | None:
         raw = self._r.get(f"receipt:{rid}")
         return json.loads(raw) if raw else None
+
+    def add_wall(self, entry: dict) -> None:
+        self._r.lpush("wall", json.dumps(entry))
+        self._r.ltrim("wall", 0, 49)
+
+    def wall(self, limit: int = 30) -> list[dict]:
+        return [json.loads(x) for x in self._r.lrange("wall", 0, limit - 1)]

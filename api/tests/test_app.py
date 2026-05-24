@@ -44,3 +44,18 @@ def test_audit_diff_respects_keep_claim_kinds(monkeypatch, tmp_path):
     assert any("no test files" in f["label"] for f in full["unhonored"])
     dropped = c.post("/api/audit/diff", json={**base, "keep_claim_kinds": []}).json()["receipt"]
     assert dropped["unhonored"] == []
+
+
+def test_wall_collects_sneaky_receipts(monkeypatch, tmp_path):
+    from robotruth_api import app as appmod
+    from robotruth_api.store import FileStore
+    from fastapi.testclient import TestClient
+    monkeypatch.setattr(appmod, "STORE", FileStore(tmp_path))
+    c = TestClient(appmod.app)
+    sneaky = ("diff --git a/auth/s.ts b/auth/s.ts\n--- a/auth/s.ts\n+++ b/auth/s.ts\n"
+              "@@ -1,2 +1,1 @@\n keep\n-app.use(csrfProtection())\n")
+    c.post("/api/audit/diff", json={"repo": "o/r", "number": 1, "title": "x", "url": "u", "diff": sneaky})
+    items = c.get("/api/wall").json()["items"]
+    assert len(items) == 1
+    assert items[0]["verdict"] in ("SNEAKY", "LIAR")
+    assert items[0]["author"] is None  # no bot author -> anonymized

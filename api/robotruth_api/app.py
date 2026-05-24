@@ -31,6 +31,17 @@ class DiffReq(BaseModel):
 
 def _store_and_return(receipt: dict) -> dict:
     rid = STORE.put(receipt)
+    if receipt.get("verdict") in ("SNEAKY", "LIAR"):
+        author = receipt["pr"].get("author")
+        STORE.add_wall({
+            "id": rid,
+            "repo": receipt["pr"]["repo"],
+            "number": receipt["pr"]["number"],
+            "title": receipt["pr"]["title"],
+            "verdict": receipt["verdict"],
+            "grade": receipt["grade"],
+            "author": author if (author and author.endswith("[bot]")) else None,
+        })
     return {"id": rid, "receipt": receipt}
 
 
@@ -57,6 +68,11 @@ def audit_paste(req: DiffReq) -> dict:
     pr = PRMeta(repo=req.repo, number=req.number, title=req.title, url=req.url, body=req.body)
     receipt = audit_diff(pr, req.diff, keep_claim_kinds=req.keep_claim_kinds)
     return _store_and_return(receipt.model_dump())
+
+
+@app.get("/api/wall")
+def wall() -> dict:
+    return {"items": STORE.wall()}
 
 
 @app.get("/api/receipt/{rid}")
