@@ -11,3 +11,7 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["robotruth_api*"]
+
+# Vercel: deploy the FastAPI app (robotruth_api/app.py -> `app`) as one function.
+[tool.vercel]
+entrypoint = "robotruth_api.app:app"
