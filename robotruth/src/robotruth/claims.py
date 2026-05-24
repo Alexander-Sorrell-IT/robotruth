@@ -7,9 +7,26 @@ _NO_DEPS_RE = re.compile(r"\bno\b[^.\n]*\b(dependenc(?:y|ies)|packages?|deps)\b"
 _NO_BREAKING_RE = re.compile(r"\bno\b[^.\n]*\bbreaking\b", re.I)
 _SCOPE_ONLY_RE = re.compile(r"\b(only|just|solely|merely)\b", re.I)
 
+_CUTOFF_RE = re.compile(
+    r"(?is)(<details>|#{1,6}\s*release notes|#{1,6}\s*changelog|"
+    r"#{1,6}\s*commits|dependabot will resolve|signed-off-by:|"
+    r"<!--|\[//\]:)"
+)
+_TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _human_body(body: str) -> str:
+    """Keep only the human-written lead of a PR body: cut at the first
+    auto-generated/changelog marker, then strip HTML tags."""
+    if not body:
+        return ""
+    m = _CUTOFF_RE.search(body)
+    lead = body[: m.start()] if m else body
+    return _TAG_RE.sub(" ", lead)
+
 
 def extract_claims(title: str, body: str) -> list[Claim]:
-    text = f"{title}\n{body or ''}"
+    text = f"{title}\n{_human_body(body)}"
     claims: list[Claim] = []
     if _TEST_RE.search(text):
         claims.append(Claim(kind="adds_tests", raw="claims to add tests"))
