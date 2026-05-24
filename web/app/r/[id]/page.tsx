@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { getReceipt } from "@/lib/api";
 import { ReceiptCard } from "@/components/ReceiptCard";
 
@@ -28,7 +27,6 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   return (
     <main style={{ padding: "40px 16px" }}>
       <ReceiptCard receipt={receipt} />
-      <p style={{ textAlign: "center", marginTop: 24 }}><Link href="/">Audit your own PR →</Link></p>
     </main>
   );
 }
