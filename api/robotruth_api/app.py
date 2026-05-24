@@ -1,5 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
+import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -81,3 +82,41 @@ def get_receipt(rid: str) -> dict:
     if r is None:
         raise HTTPException(404, "Receipt not found")
     return r
+
+
+@app.get("/api/repo/{owner}/{name}")
+def repo_scorecard(owner: str, name: str) -> dict:
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "robotruth"}
+    if config.GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {config.GITHUB_TOKEN}"
+    with httpx.Client(timeout=20) as client:
+        r = client.get(
+            f"https://api.github.com/repos/{owner}/{name}/pulls",
+            params={"state": "all", "per_page": 8, "sort": "created", "direction": "desc"},
+            headers=headers,
+        )
+        if r.status_code == 404:
+            raise HTTPException(404, f"Repo not found: {owner}/{name}")
+        r.raise_for_status()
+        pulls = r.json()
+    items: list[dict] = []
+    good = 0
+    for p in pulls:
+        url = p.get("html_url")
+        if not url:
+            continue
+        try:
+            receipt = audit_pr(url, token=config.GITHUB_TOKEN)
+        except (ValueError, LookupError, httpx.HTTPError):
+            continue
+        items.append({
+            "number": receipt.pr.number,
+            "title": receipt.pr.title,
+            "verdict": receipt.verdict,
+            "grade": receipt.grade,
+            "url": receipt.pr.url,
+        })
+        if receipt.grade in ("A", "B"):
+            good += 1
+    score = round(100 * good / len(items)) if items else 0
+    return {"repo": f"{owner}/{name}", "score": score, "items": items}

@@ -46,6 +46,41 @@ def test_audit_diff_respects_keep_claim_kinds(monkeypatch, tmp_path):
     assert dropped["unhonored"] == []
 
 
+def test_repo_scorecard_scores_and_lists(monkeypatch):
+    from robotruth_api import app as appmod
+    from robotruth.types import PRMeta, Receipt
+    from fastapi.testclient import TestClient
+    import httpx
+
+    # fake the GitHub "list pulls" call.
+    # URL-conditional: TestClient also subclasses httpx.Client, so a blanket patch
+    # would intercept c.get("/api/repo/o/r") itself.  Delegate non-GitHub URLs
+    # back to the real implementation so the ASGI dispatch still works.
+    real_get = httpx.Client.get
+    def fake_get(self, url, *args, **kwargs):
+        if "api.github.com" in str(url):
+            req = httpx.Request("GET", url)
+            return httpx.Response(200, json=[{"html_url": "https://github.com/o/r/pull/1"},
+                                             {"html_url": "https://github.com/o/r/pull/2"}], request=req)
+        return real_get(self, url, *args, **kwargs)
+    monkeypatch.setattr(httpx.Client, "get", fake_get)
+
+    # fake audit_pr: PR1 honest (A), PR2 sneaky (D)
+    def fake_audit(url, token=None):
+        n = int(url.rstrip("/").split("/")[-1])
+        pr = PRMeta(repo="o/r", number=n, title=f"PR {n}", url=url)
+        if n == 1:
+            return Receipt(pr=pr, verdict="HONEST", grade="A")
+        return Receipt(pr=pr, verdict="SNEAKY", grade="D")
+    monkeypatch.setattr(appmod, "audit_pr", fake_audit)
+
+    c = TestClient(appmod.app)
+    data = c.get("/api/repo/o/r").json()
+    assert data["repo"] == "o/r"
+    assert len(data["items"]) == 2
+    assert data["score"] == 50  # 1 of 2 graded A/B
+
+
 def test_wall_collects_sneaky_receipts(monkeypatch, tmp_path):
     from robotruth_api import app as appmod
     from robotruth_api.store import FileStore
