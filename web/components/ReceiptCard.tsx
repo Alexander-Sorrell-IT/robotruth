@@ -1,4 +1,5 @@
 import type { Receipt, Flag } from "@/lib/receipt";
+import { ClaimsEditor } from "@/components/ClaimsEditor";
 
 const VERDICT_COLOR: Record<string, string> = {
   HONEST: "#16a34a", "MOSTLY HONEST": "#65a30d", SNEAKY: "#ea580c", LIAR: "#dc2626",
@@ -33,11 +34,7 @@ export function ReceiptCard({ receipt }: { receipt: Receipt }) {
       <Bucket title="Did, but didn&apos;t mention" icon="⚠️" flags={receipt.undisclosed} />
       <Bucket title="Claimed, but not found" icon="❌" flags={receipt.unhonored} />
       <Bucket title="Claimed &amp; delivered" icon="✅" flags={receipt.delivered} />
-      {receipt.parsed_claims.length > 0 && (
-        <div style={{ marginTop: 16, fontSize: 12, color: "#6b7280" }}>
-          We read this PR as promising: {receipt.parsed_claims.join("; ")}
-        </div>
-      )}
+      <ClaimsEditor prUrl={receipt.pr.url} parsedClaims={receipt.parsed_claims} claimKinds={receipt.claim_kinds} />
       <div style={{ marginTop: 12, fontSize: 11, color: "#9ca3af" }}>
         Deterministic. Every flag cites file:line. No AI opinions. — {receipt.math}
       </div>

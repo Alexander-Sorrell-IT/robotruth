@@ -6,5 +6,5 @@ export interface Receipt {
   pr: { repo: string; number: number; title: string; url: string; body?: string; author?: string | null };
   verdict: Verdict; grade: Grade;
   delivered: Flag[]; undisclosed: Flag[]; unhonored: Flag[];
-  parsed_claims: string[]; math: string;
+  parsed_claims: string[]; claim_kinds: string[]; math: string;
 }
