@@ -1,0 +1,1 @@
+"""RoboTruth MCP server."""
