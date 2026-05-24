@@ -30,3 +30,17 @@ def test_diff_too_large_rejected(monkeypatch, tmp_path):
     c = TestClient(appmod.app)
     r = c.post("/api/audit/diff", json={"repo": "o/r", "number": 1, "title": "x", "url": "u", "diff": "x" * 50})
     assert r.status_code == 413
+
+
+def test_audit_diff_respects_keep_claim_kinds(monkeypatch, tmp_path):
+    from robotruth_api import app as appmod
+    from robotruth_api.store import FileStore
+    from fastapi.testclient import TestClient
+    monkeypatch.setattr(appmod, "STORE", FileStore(tmp_path))
+    c = TestClient(appmod.app)
+    diff = "diff --git a/app/x.ts b/app/x.ts\n--- a/app/x.ts\n+++ b/app/x.ts\n@@ -1,1 +1,2 @@\n a\n+b\n"
+    base = {"repo": "o/r", "number": 1, "title": "x", "url": "u", "body": "added tests", "diff": diff}
+    full = c.post("/api/audit/diff", json=base).json()["receipt"]
+    assert any("no test files" in f["label"] for f in full["unhonored"])
+    dropped = c.post("/api/audit/diff", json={**base, "keep_claim_kinds": []}).json()["receipt"]
+    assert dropped["unhonored"] == []

@@ -16,6 +16,7 @@ STORE: ReceiptStore = RedisStore(config.REDIS_URL) if config.REDIS_URL else File
 
 class UrlReq(BaseModel):
     url: str
+    keep_claim_kinds: list[str] | None = None
 
 
 class DiffReq(BaseModel):
@@ -25,6 +26,7 @@ class DiffReq(BaseModel):
     url: str
     body: str = ""
     diff: str
+    keep_claim_kinds: list[str] | None = None
 
 
 def _store_and_return(receipt: dict) -> dict:
@@ -40,7 +42,7 @@ def health() -> dict:
 @app.post("/api/audit")
 def audit_url(req: UrlReq) -> dict:
     try:
-        receipt = audit_pr(req.url, token=config.GITHUB_TOKEN)
+        receipt = audit_pr(req.url, token=config.GITHUB_TOKEN, keep_claim_kinds=req.keep_claim_kinds)
     except ValueError as e:
         raise HTTPException(400, str(e))
     except LookupError as e:
@@ -53,7 +55,7 @@ def audit_paste(req: DiffReq) -> dict:
     if len(req.diff.encode("utf-8")) > config.DIFF_MAX_BYTES:
         raise HTTPException(413, "Diff too large; trim it or audit a smaller PR.")
     pr = PRMeta(repo=req.repo, number=req.number, title=req.title, url=req.url, body=req.body)
-    receipt = audit_diff(pr, req.diff)
+    receipt = audit_diff(pr, req.diff, keep_claim_kinds=req.keep_claim_kinds)
     return _store_and_return(receipt.model_dump())
 
 
