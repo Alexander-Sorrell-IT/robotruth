@@ -6,10 +6,23 @@ from ..diffparse import Diff
 
 _COMMENT_RE = re.compile(r"^\s*(#|//|/\*|\*)")
 
+# Paths where matches are evidence of *content*, not *code*, and never raise flags:
+# tests/fixtures/examples/docs prose, plus markdown/rst/text/asciidoc files anywhere.
+# Brand-fatal otherwise: e.g. a library that intentionally implements `eval` would
+# have its own test calling `obj.eval(...)` flagged critical.
+_NON_CODE_PATH_RE = re.compile(
+    r"(^|/)(tests?|docs?|examples?|fixtures?|samples?|spec|specs|benchmarks?)/"
+    r"|\.(md|rst|txt|adoc|asciidoc)$",
+    re.I,
+)
+
 # Always-dangerous sinks. Tokens fragment-assembled so no bare literal appears.
-# 'exec' uses a negative lookbehind so JS `regex.exec(...)` / `.exec(` is NOT matched.
+# Both 'eval' and 'exec' use the same lookbehind so method calls like `.eval(` /
+# `.exec(` (object methods on a class that *implements* an eval/exec, e.g.
+# RestrictedPython, a regex object's .exec, etc.) are NOT matched. Only bare
+# builtin invocations qualify.
 _ALWAYS = [
-    r"\b%s\s*\(" % ("ev" + "al"),
+    r"(?<![\w.])%s\s*\(" % ("ev" + "al"),
     r"\bnew\s+Function\s*\(",
     r"\b%sprocess\b" % "child_",
     r"(?<![\w.])%s\s*\(" % ("ex" + "ec"),
@@ -38,6 +51,8 @@ def _is_sink(line: str) -> bool:
 def scan(diff: Diff, claims: list[Claim]) -> list[Flag]:
     out: list[Flag] = []
     for f in diff.files:
+        if _NON_CODE_PATH_RE.search(f.path):
+            continue
         for add in f.added:
             if _is_sink(add.content):
                 out.append(Flag(
