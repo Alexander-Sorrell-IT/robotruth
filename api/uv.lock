@@ -418,7 +418,7 @@ wheels = [
 [[package]]
 name = "robotruth"
 version = "0.1.0"
-source = { git = "https://github.com/Alexander-Sorrell-IT/robotruth.git?subdirectory=robotruth&branch=main#8c56c4460cb46c12cc8ead653a82a81a024cc471" }
+source = { git = "https://github.com/Alexander-Sorrell-IT/robotruth.git?subdirectory=robotruth&branch=main#00d57f7463b92b207b055dfc74edc00e096e8659" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
