@@ -1,8 +1,10 @@
 from __future__ import annotations
 from pathlib import Path
+import html
 import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 from robotruth.types import PRMeta
 from robotruth.engine import audit_diff, audit_pr
@@ -82,6 +84,106 @@ def get_receipt(rid: str) -> dict:
     if r is None:
         raise HTTPException(404, "Receipt not found")
     return r
+
+
+def _score_repo(owner: str, name: str) -> tuple[int | None, int]:
+    """Compute (score, sample_size) for a repo, or (None, 0) if unverifiable.
+    Score = % of audited PRs grading A or B. Returns None on any failure so
+    the badge can show 'unverified' instead of misleadingly reporting 0%."""
+    headers = {"Accept": "application/vnd.github+json", "User-Agent": "robotruth"}
+    if config.GITHUB_TOKEN:
+        headers["Authorization"] = f"Bearer {config.GITHUB_TOKEN}"
+    try:
+        with httpx.Client(timeout=20) as client:
+            r = client.get(
+                f"https://api.github.com/repos/{owner}/{name}/pulls",
+                params={"state": "all", "per_page": 8, "sort": "created", "direction": "desc"},
+                headers=headers,
+            )
+            if r.status_code != 200:
+                return (None, 0)
+            pulls = r.json()
+    except httpx.HTTPError:
+        return (None, 0)
+    audited = 0
+    good = 0
+    for p in pulls:
+        url = p.get("html_url")
+        if not url:
+            continue
+        try:
+            receipt = audit_pr(url, token=config.GITHUB_TOKEN)
+        except (ValueError, LookupError, httpx.HTTPError):
+            continue
+        audited += 1
+        if receipt.grade in ("A", "B"):
+            good += 1
+    if audited == 0:
+        return (None, 0)
+    return (round(100 * good / audited), audited)
+
+
+def _badge_color(score: int | None) -> str:
+    """Shields.io-aligned hue ramp. None = neutral gray ('unverified')."""
+    if score is None:
+        return "#9f9f9f"
+    if score >= 90:
+        return "#4c1"
+    if score >= 75:
+        return "#a4a61d"
+    if score >= 50:
+        return "#dfb317"
+    if score >= 25:
+        return "#fe7d37"
+    return "#e05d44"
+
+
+def _badge_svg(left: str, right: str, right_color: str) -> str:
+    """Minimal Shields-style SVG badge. Two rounded boxes side-by-side."""
+    # Approximate text widths via 7px-per-char heuristic (decent for sans).
+    lw = max(40, 10 + 7 * len(left))
+    rw = max(50, 10 + 7 * len(right))
+    total = lw + rw
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{total}" height="20" role="img" aria-label="{html.escape(left)}: {html.escape(right)}">
+  <linearGradient id="g" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="r"><rect width="{total}" height="20" rx="3" fill="#fff"/></clipPath>
+  <g clip-path="url(#r)">
+    <rect width="{lw}" height="20" fill="#555"/>
+    <rect x="{lw}" width="{rw}" height="20" fill="{right_color}"/>
+    <rect width="{total}" height="20" fill="url(#g)"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+    <text x="{lw/2}" y="15" fill="#010101" fill-opacity=".3">{html.escape(left)}</text>
+    <text x="{lw/2}" y="14">{html.escape(left)}</text>
+    <text x="{lw + rw/2}" y="15" fill="#010101" fill-opacity=".3">{html.escape(right)}</text>
+    <text x="{lw + rw/2}" y="14">{html.escape(right)}</text>
+  </g>
+</svg>"""
+
+
+@app.get("/api/badge/{owner}/{name}.svg")
+def badge(owner: str, name: str) -> Response:
+    """Shields-style honesty badge for a public GitHub repo. The right-hand
+    label is the % of the repo's last 8 PRs grading A or B. Cacheable; if the
+    audit can't run (rate limit, private repo, etc.) we return a neutral
+    'unverified' badge rather than lying with a 0% score."""
+    score, _n = _score_repo(owner, name)
+    if score is None:
+        right = "unverified"
+    else:
+        right = f"{score}% honest"
+    svg = _badge_svg("robotruth", right, _badge_color(score))
+    return Response(
+        content=svg,
+        media_type="image/svg+xml",
+        headers={
+            # Cache for an hour at the edge; allow revalidation in background.
+            "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
+        },
+    )
 
 
 @app.get("/api/repo/{owner}/{name}")
