@@ -84,9 +84,15 @@ function Bucket({
   );
 }
 
+const SCANNERS = ["dangerous_primitives", "dependencies", "scope_drift", "security_guard"];
+const CLAIM_PATTERNS = ["adds_tests", "no_deps", "no_breaking", "scope_only"];
+
 export function ReceiptCard({ receipt }: { receipt: Receipt }) {
   const c = VERDICT_COLOR[receipt.verdict] ?? "#444";
   const bg = VERDICT_BG[receipt.verdict] ?? "#f9fafb";
+  const flagCount =
+    receipt.undisclosed.length + receipt.unhonored.length;
+  const claimsParsed = receipt.parsed_claims?.length ?? 0;
 
   return (
     <div
@@ -173,6 +179,53 @@ export function ReceiptCard({ receipt }: { receipt: Receipt }) {
         >
           {receipt.grade}
         </span>
+      </div>
+
+      {/* Audit summary — what was actually checked (success ≠ silence) */}
+      <div
+        style={{
+          padding: "14px 24px",
+          background: "#fafafa",
+          borderBottom: "1px solid #f3f4f6",
+          fontSize: 12.5,
+          color: "#374151",
+          lineHeight: 1.55,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 10.5,
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "#6b7280",
+            marginBottom: 6,
+          }}
+        >
+          <span style={{ color: "#16a34a" }}>●</span> Audit ran · {SCANNERS.length} scanners · {flagCount} flag{flagCount === 1 ? "" : "s"} raised
+        </div>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "#9ca3af" }}>
+          {SCANNERS.join(" · ")}
+        </div>
+        <div style={{ marginTop: 8, fontSize: 12, color: "#4b5563" }}>
+          {claimsParsed === 0 ? (
+            <>
+              <strong style={{ color: "#111827" }}>0 claim patterns matched</strong> the PR body.
+              We look for 4 explicit patterns ({CLAIM_PATTERNS.join(", ")}). This PR didn't include any —
+              verdict is based on the diff scanners alone.
+            </>
+          ) : (
+            <>
+              <strong style={{ color: "#111827" }}>{claimsParsed} claim pattern{claimsParsed === 1 ? "" : "s"} parsed</strong> from the PR body
+              {receipt.claim_kinds && receipt.claim_kinds.length > 0 && (
+                <> ({receipt.claim_kinds.join(", ")})</>
+              )} — checked against the diff.
+            </>
+          )}
+        </div>
       </div>
 
       {/* Buckets */}
