@@ -30,6 +30,8 @@ The verdict path is deterministic by design. LLMs do not decide.
 
 One engine — ~460 lines, no ML libraries — is imported by the web app, the MCP server, the per-repo scorecard, and the upcoming CLI. **No adapter contains audit logic.** The category lives in the function, not the surface.
 
+The engine is **precision-biased**: it never accuses, it cites. Claims it can't verify from the diff surface as *unverified*, not as lies. The brand decision is that **false positives are the failure mode we refuse, false negatives are the failure mode we own and disclose** — an accountability product that ever wrongly accuses an honest PR is no longer one. Every flag carries the literal evidence the regex matched so a reader can audit the auditor.
+
 ## The receipt and its surfaces
 
 The receipt itself is a screenshot-worthy card: verdict word, letter grade, three buckets (Delivered / Undisclosed / Unhonored), every flag cited at `file:line`, math decomposed on screen. Every share link renders the verdict card as its OpenGraph preview — when a receipt lands in Slack or X, the catch is already self-explanatory.
@@ -40,13 +42,17 @@ Beyond the single-PR receipt, the same engine fans out:
 - **Per-repo scorecard** — `/repo/{owner}/{name}` audits the recent PRs of any public repo on demand and emits an honesty score.
 - **MCP server** — `pip install` a stdio server that exposes `audit_pr` to Claude Code, Cursor, and Cline. The agent audits the PR it just opened. Self-incrimination, in-workflow.
 
+## Who it's for
+
+The staff engineer who is now the bottleneck on agent-authored PRs. In 2026 a tech lead reviews more pull requests than they write, and the ones they don't write are the ones written by something they cannot cross-examine. The reviewer is the customer. The agent is the subject. The receipt is the artifact that closes the loop without expanding the reviewer's day.
+
 ## Tools used
 
 - **Engine:** Python — `httpx`, `pydantic`, `unidiff`. No ML libraries.
 - **Surfaces:** Next.js 16 frontend on Vercel · FastAPI on Vercel Python functions · Upstash Redis for durable receipts · Python MCP SDK for the stdio server.
 - **Verification:** Playwright against production. Paste PR → live API → DOM assertion on verdict, zero console errors.
 - **Build copilot:** Claude Code (Opus 4.7). Every architectural call — engine-vs-API split, deterministic verdict path, claim-editor UI as precision insurance, MCP-as-distribution, Wall attribution policy (bots only / humans anonymized) — was worked through with the assistant in full transparency. This submission was itself adversarially edited by parallel agent reviewers before final draft.
-- **Analytics:** Novus instruments the funnel: `landing_view → pr_pasted → receipt_generated → receipt_shared → wall_view → submitted_to_wall`.
+- **Analytics:** Novus instruments the funnel `landing → paste → receipt → share → wall-submit`. The hypothesis we're measuring: *receipts spread (high share rate), evidence doesn't always follow them home (low submit rate)*. That share→submit cliff is the next surface to design for — not more scanners.
 
 ## What I learned
 
@@ -59,6 +65,8 @@ Beyond the single-PR receipt, the same engine fans out:
 Agents are now writing software faster than humans can read it. That asymmetry will not reverse; it will compound. Either every agent action becomes auditable at the resolution it was performed at — or trust in agent-authored code collapses to the speed of human review, and the productivity story of this decade collapses with it.
 
 RoboTruth is the first receipt. Pull requests are the first surface. The next surfaces — deployment agents, customer-comms agents, financial agents, ops agents, scheduler agents — are already shipping work, already narrating themselves, and already lying about it. The category is the gap between what the robot said and what the robot did.
+
+**GitHub cannot audit GitHub. Anthropic cannot audit Claude.** The umpire has to be third-party and deterministic — that's a structural position, not a head-start. It is the only position where the answer to *"did the robot lie?"* cannot itself be a lie.
 
 > *The robot doesn't get to write its own performance review.*
 
