@@ -1,7 +1,10 @@
 # RoboTruth
 
-> **Did the robot lie?**
-> Paste a public GitHub PR. Get a receipt of what it *claimed* vs what it *actually did* — every sneaky, unrequested, or dangerous change cited at `file:line`. **Deterministic. No AI in the verdict path.**
+> **The Receipts Protocol — first surface: GitHub PRs.**
+> *Did the robot lie?*
+> AI is now doing the work. Receipts make it impossible to lie about what it did.
+>
+> Paste a public GitHub PR. In seconds, get a deterministic receipt — every divergence between what the AI *claimed* and what it *actually did*, cited at `file:line`. **No model in the verdict path.**
 
 **Try it now:** **[robotruth-rdft.vercel.app](https://robotruth-rdft.vercel.app)**
 
@@ -12,9 +15,9 @@
 
 ## What
 
-In 2026, most pull requests are written by agents — Cursor, Claude Code, Copilot, Lovable, Dependabot. The PR description is the agent's *own narration*. Nobody can quickly answer: **did it only do what it said, or did it quietly do more?**
+There is now a measurable gap between what an AI agent says it did and what it actually did. Nobody is measuring it. That is the category RoboTruth opens — **The Receipts Protocol**.
 
-RoboTruth reads the diff and answers the question.
+Pull requests are the first surface where the gap is visible at file-and-line resolution. Tomorrow it's deployment agents, customer-comms agents, financial agents, ops agents. RoboTruth reads the diff and answers the one question every reviewer is silently asking: **did the robot do only what it said, or did it quietly do more?**
 
 Paste a PR URL → get a **receipt** with:
 
@@ -64,4 +67,6 @@ Built greenfield May 20 – June 20, 2026.
 
 ---
 
-*Deterministic AI-PR auditing · no AI opinions.*
+*The Receipts Protocol · deterministic verdicts · no model in the verdict path.*
+
+> *The robot doesn't get to write its own performance review.*

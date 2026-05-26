@@ -36,12 +36,24 @@ export default function Home() {
       }}
     >
       {/* Hero */}
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 700,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#6b7280",
+          marginBottom: 14,
+        }}
+      >
+        The Receipts Protocol · first surface: GitHub PRs
+      </div>
       <h1
         style={{
-          fontSize: 42,
+          fontSize: 46,
           fontWeight: 800,
           letterSpacing: "-0.03em",
-          lineHeight: 1.1,
+          lineHeight: 1.05,
           color: "#111827",
         }}
       >
@@ -49,15 +61,25 @@ export default function Home() {
       </h1>
       <p
         style={{
-          marginTop: 16,
-          fontSize: 18,
+          marginTop: 20,
+          fontSize: 19,
+          color: "#111827",
+          lineHeight: 1.5,
+          fontWeight: 500,
+        }}
+      >
+        AI is now doing the work. Receipts make it impossible to lie about what it did.
+      </p>
+      <p
+        style={{
+          marginTop: 14,
+          fontSize: 15,
           color: "#4b5563",
           lineHeight: 1.6,
         }}
       >
-        Paste a public GitHub PR. See what it{" "}
-        <em style={{ fontStyle: "italic" }}>claimed</em> vs. what it{" "}
-        <em style={{ fontStyle: "italic" }}>actually did</em> — deterministically, no AI guessing.
+        Paste a public GitHub PR. In seconds, get a deterministic receipt — every divergence between what the AI <em>claimed</em> and what it <em>actually did</em>, cited at <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 4, fontSize: 13 }}>file:line</code>.
+        <strong style={{ color: "#111827" }}> No model in the verdict path.</strong>
       </p>
 
       {/* Form */}

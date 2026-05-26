@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: "RoboTruth — Did the robot lie?",
-  description: "Paste a public GitHub PR. See what it claimed vs. what it actually did.",
+  description: "The Receipts Protocol — a deterministic record of what AI agents claimed vs what they actually did. First surface: GitHub PRs. No model in the verdict path.",
 };
 
 export default function RootLayout({
@@ -59,7 +59,7 @@ export default function RootLayout({
           fontSize: 12,
           color: "#9ca3af",
         }}>
-          Deterministic AI-PR auditing · no AI opinions
+          The Receipts Protocol · deterministic verdicts · no model in the verdict path
         </footer>
       </body>
     </html>
