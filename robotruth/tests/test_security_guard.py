@@ -36,3 +36,47 @@ def test_rename_not_flagged():
         "@@ -1,2 +1,2 @@\n keep\n-app.use(csrfProtection())\n+  app.use(csrfProtection())\n"
     )
     assert scan(d, []) == []
+
+
+def test_cross_file_rename_not_flagged():
+    # Legitimate hardening: @login_required moved from views/foo.py into
+    # middleware/auth.py. The decorator is removed from one file and added
+    # to another — must NOT flag critical (this is the canonical case
+    # adversarial red-team identified as same-file-only rename failure).
+    d = parse_diff(
+        "diff --git a/views/foo.py b/views/foo.py\n"
+        "--- a/views/foo.py\n+++ b/views/foo.py\n"
+        "@@ -1,3 +1,2 @@\n"
+        " from django.shortcuts import render\n"
+        "-@login_required\n"
+        " def foo(request):\n"
+        "diff --git a/middleware/auth.py b/middleware/auth.py\n"
+        "--- a/middleware/auth.py\n+++ b/middleware/auth.py\n"
+        "@@ -1,1 +1,3 @@\n"
+        " from functools import wraps\n"
+        "+@login_required\n"
+        "+def wrap(view):\n"
+    )
+    assert scan(d, []) == []
+
+
+def test_cross_file_removal_still_flagged():
+    # If the same token is NOT added back anywhere in the diff, the removal
+    # is still a regression. Regression guard: don't let the cross-file
+    # rename detection silence true removals.
+    d = parse_diff(
+        "diff --git a/views/foo.py b/views/foo.py\n"
+        "--- a/views/foo.py\n+++ b/views/foo.py\n"
+        "@@ -1,3 +1,2 @@\n"
+        " from django.shortcuts import render\n"
+        "-@login_required\n"
+        " def foo(request):\n"
+        "diff --git a/views/bar.py b/views/bar.py\n"
+        "--- a/views/bar.py\n+++ b/views/bar.py\n"
+        "@@ -1,2 +1,3 @@\n"
+        " from django.shortcuts import render\n"
+        "+# auth handled upstream\n"
+        " def bar(request):\n"
+    )
+    flags = scan(d, [])
+    assert len(flags) == 1 and flags[0].severity == "critical"
