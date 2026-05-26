@@ -41,6 +41,7 @@ Beyond the single-PR receipt, the same engine fans out:
 - **Wall of Shame** — global feed of caught bot-authored PRs.
 - **Per-repo scorecard** — `/repo/{owner}/{name}` audits the recent PRs of any public repo on demand and emits an honesty score.
 - **MCP server** — `pip install` a stdio server that exposes `audit_pr` to Claude Code, Cursor, and Cline. The agent audits the PR it just opened. Self-incrimination, in-workflow.
+- **Deploy Receipt preview** — [`/deploy/example`](https://robotruth-rdft.vercel.app/deploy/example) shows the same receipt grammar applied to a deployment-agent claim. Same verdict words, same three buckets, same evidence citations at `resource:line`. The scanners are different; the protocol is the same.
 
 ## Who it's for
 
