@@ -1,3 +1,5 @@
+import { TrackView } from "@/components/TrackView";
+
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
 const COLOR: Record<string, string> = { SNEAKY: "#ea580c", LIAR: "#dc2626" };
@@ -35,6 +37,7 @@ export default async function WallPage() {
         fontFamily: "ui-sans-serif, system-ui",
       }}
     >
+      <TrackView event="wall_view" />
       <div
         style={{
           fontSize: 12,

@@ -1,11 +1,13 @@
 "use client";
 import { useState } from "react";
+import { track } from "@/lib/analytics";
 
 export function CopyLinkButton() {
   const [copied, setCopied] = useState(false);
 
   function copy() {
     navigator.clipboard.writeText(window.location.href).then(() => {
+      track("receipt_shared");
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });

@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auditUrl } from "@/lib/api";
+import { track } from "@/lib/analytics";
 
 const EXAMPLES: { url: string; label: string }[] = [
   { url: "https://github.com/rockgis/uiscloud_lightRAG/pull/6", label: "a dependabot bump" },
@@ -14,11 +15,16 @@ export default function Home() {
   const [err, setErr] = useState("");
   const router = useRouter();
 
+  useEffect(() => {
+    track("landing_view");
+  }, []);
+
   async function run(target: string) {
     setBusy(true);
     setErr("");
     try {
       const { id } = await auditUrl(target);
+      track("receipt_generated", { id });
       router.push(`/r/${id}`);
     } catch (e) {
       setErr((e as Error).message);
@@ -86,7 +92,10 @@ export default function Home() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (url.trim()) run(url.trim());
+          if (url.trim()) {
+            track("pr_pasted");
+            run(url.trim());
+          }
         }}
         style={{ display: "flex", gap: 8, marginTop: 28 }}
       >
@@ -149,7 +158,10 @@ export default function Home() {
           {EXAMPLES.map((ex, i) => (
             <button
               key={i}
-              onClick={() => run(ex.url)}
+              onClick={() => {
+                track("example_clicked", { url: ex.url });
+                run(ex.url);
+              }}
               disabled={busy}
               style={{
                 fontSize: 13,
