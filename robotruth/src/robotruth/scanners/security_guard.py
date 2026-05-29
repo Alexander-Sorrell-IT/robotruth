@@ -76,6 +76,7 @@ def scan(diff: Diff, claims: list[Claim]) -> list[Flag]:
             out.append(Flag(
                 label="Security guard removed/weakened",
                 file=f.path,
+                line=rem.line,
                 severity="critical",
                 evidence=f"removed: {rem.content.strip()[:120]}",
             ))

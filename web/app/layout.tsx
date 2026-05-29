@@ -43,9 +43,10 @@ export default function RootLayout({
           <Link href="/" style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em" }}>
             🤖 RoboTruth
           </Link>
-          <Link href="/wall" style={{ fontSize: 14, color: "#6b7280" }}>
-            Wall of Shame
-          </Link>
+          <nav style={{ display: "flex", gap: 20, alignItems: "center" }}>
+            <Link href="/wall" style={{ fontSize: 14, color: "#6b7280" }}>Wall of Shame</Link>
+            <Link href="/badge" style={{ fontSize: 14, color: "#6b7280" }}>Badge</Link>
+          </nav>
         </header>
 
         <div style={{ flex: 1 }}>

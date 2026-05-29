@@ -20,7 +20,7 @@ def scan(diff: Diff, claims: list[Claim]) -> list[Flag]:
         return []
     return [Flag(
         label="Broad scope despite 'only'/'just' claim",
-        file="",
+        file=sorted(code_paths)[0] if code_paths else "",
         severity="moderate",
         evidence=(f"touched {len(topdirs)} top-level code areas: {', '.join(sorted(topdirs))}; "
                   f"files: {', '.join(sorted(code_paths))[:200]}"),

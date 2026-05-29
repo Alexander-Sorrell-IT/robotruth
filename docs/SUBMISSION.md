@@ -51,9 +51,9 @@ The staff engineer who is now the bottleneck on agent-authored PRs. In 2026 a te
 
 - **Engine:** Python — `httpx`, `pydantic`, `unidiff`. No ML libraries.
 - **Surfaces:** Next.js 16 frontend on Vercel · FastAPI on Vercel Python functions · Upstash Redis for durable receipts · Python MCP SDK for the stdio server.
-- **Verification:** 66 pytest tests covering claim extraction, all four scanners, grading logic, and API endpoints. TypeScript strict mode passes on the web surface. Every scanner has regression tests pinning the precision decisions made during the build.
+- **Verification:** 72 pytest tests covering claim extraction, all four scanners, grading logic, and API endpoints. TypeScript strict mode passes on the web surface. Every scanner has regression tests pinning the precision decisions made during the build.
 - **Build copilot:** Claude Code (Opus 4.7). Every architectural call — engine-vs-API split, deterministic verdict path, claim-editor UI as precision insurance, MCP-as-distribution, Wall attribution policy (bots only / humans anonymized) — was worked through with the assistant in full transparency. This submission was itself adversarially edited by parallel agent reviewers before final draft.
-- **Analytics:** Novus instruments the funnel `landing → paste → receipt → share → wall-submit`. The hypothesis we're measuring: *receipts spread (high share rate), evidence doesn't always follow them home (low submit rate)*. That share→submit cliff is the next surface to design for — not more scanners.
+- **Analytics:** The funnel hypothesis — *receipts spread (high share rate), evidence doesn't always follow them home (low submit rate)* — is the measurement we designed around. Eight named events (`landing_view → pr_pasted → receipt_generated → receipt_shared → wall_submit`) fire to a working sink. Novus is the forwarder: one env var flips it live the moment access lands. The share→submit cliff is the next surface to design for — not more scanners.
 
 ## What I learned
 

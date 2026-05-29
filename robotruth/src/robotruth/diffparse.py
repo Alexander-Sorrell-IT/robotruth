@@ -14,6 +14,7 @@ class AddedLine:
 @dataclass
 class RemovedLine:
     file: str
+    line: int | None
     content: str
 
 
@@ -51,6 +52,6 @@ def parse_diff(diff_text: str) -> Diff:
                 if line.is_added:
                     fc.added.append(AddedLine(pf.path, line.target_line_no, content))
                 elif line.is_removed:
-                    fc.removed.append(RemovedLine(pf.path, content))
+                    fc.removed.append(RemovedLine(pf.path, line.source_line_no, content))
         files.append(fc)
     return Diff(files=files)
