@@ -31,10 +31,10 @@ export async function GET(req: Request) {
       const r = await fetch(`${BASE}/api/receipt/${id}`);
       if (r.ok) {
         const d = await r.json();
-        verdict = d.verdict;
-        grade = d.grade;
-        repo = `${d.pr.repo} #${d.pr.number}`;
-        title = d.pr.title;
+        verdict = String(d.verdict ?? "RECEIPT");
+        grade = String(d.grade ?? "?");
+        repo = d.pr ? `${d.pr.repo} #${d.pr.number}` : "RoboTruth";
+        title = String(d.pr?.title ?? "Did the robot lie?");
         und = d.undisclosed?.length ?? 0;
         unh = d.unhonored?.length ?? 0;
         del = d.delivered?.length ?? 0;

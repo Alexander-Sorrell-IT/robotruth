@@ -6,11 +6,17 @@ export function CopyLinkButton() {
   const [copied, setCopied] = useState(false);
 
   function copy() {
-    navigator.clipboard.writeText(window.location.href).then(() => {
-      track("receipt_shared");
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    // navigator.clipboard is undefined in insecure contexts (http) and the
+    // promise can reject if permission is denied — guard both so a copy
+    // failure never throws or blocks.
+    navigator.clipboard
+      ?.writeText(window.location.href)
+      .then(() => {
+        track("receipt_shared");
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch(() => {});
   }
 
   return (

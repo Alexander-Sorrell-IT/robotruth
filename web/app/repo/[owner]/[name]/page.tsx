@@ -3,7 +3,7 @@ const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 const COLOR: Record<string, string> = { HONEST: "#16a34a", "MOSTLY HONEST": "#65a30d", SNEAKY: "#ea580c", LIAR: "#dc2626" };
 
 interface Item { number: number; title: string; verdict: string; grade: string; url: string; }
-interface Scorecard { repo: string; score: number; items: Item[]; }
+interface Scorecard { repo: string; score: number | null; items: Item[]; }
 
 async function getScore(owner: string, name: string): Promise<Scorecard | null> {
   try {
@@ -22,7 +22,7 @@ export default async function RepoPage({ params }: { params: Promise<{ owner: st
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px", fontFamily: "ui-sans-serif, system-ui" }}>
       <h1 style={{ fontSize: 28, fontWeight: 800 }}>{data.repo}</h1>
-      <p style={{ fontSize: 18 }}>AI-honesty score: <strong>{data.score}%</strong> <span style={{ color: "#6b7280" }}>(recent PRs graded A/B)</span></p>
+      <p style={{ fontSize: 18 }}>AI-honesty score: <strong>{data.score !== null ? `${data.score}%` : "unverified"}</strong> <span style={{ color: "#6b7280" }}>(recent PRs graded A/B)</span></p>
       <ul style={{ listStyle: "none", padding: 0, marginTop: 16 }}>
         {data.items.map((it) => (
           <li key={it.number} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 14, marginBottom: 10 }}>

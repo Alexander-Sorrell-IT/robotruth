@@ -28,3 +28,22 @@ def test_no_flag_on_code_plus_tests_plus_docs():
 def test_no_flag_when_scope_is_narrow():
     claims = [Claim(kind="scope_only", value="only x")]
     assert scan(_diff(["ui/a.ts", "ui/b.ts"]), claims) == []
+
+
+def test_no_flag_on_code_plus_tests_plus_docs_plus_config():
+    # Standard monorepo PR: src + tests + docs + .github = 4 dirs total, but
+    # only 2 code dirs (src, api). Tests/docs are excluded from the count.
+    claims = [Claim(kind="scope_only", value="only auth changes")]
+    paths = ["src/auth.ts", "api/routes.ts", "tests/test_auth.ts", "docs/auth.md", ".github/CODEOWNERS"]
+    assert scan(_diff(paths), claims) == []
+
+
+def test_flags_when_many_code_dirs_despite_also_having_tests():
+    # 5 code dirs + tests/docs — should still flag because the CODE scope is broad.
+    claims = [Claim(kind="scope_only", value="only auth")]
+    paths = [
+        "auth/a.ts", "billing/b.ts", "infra/c.ts", "api/d.ts", "ui/e.ts",
+        "tests/test_auth.ts", "docs/notes.md",
+    ]
+    flags = scan(_diff(paths), claims)
+    assert len(flags) == 1

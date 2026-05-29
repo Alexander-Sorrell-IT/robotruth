@@ -3,18 +3,9 @@ import re
 from ..types import Flag
 from ..claims import Claim
 from ..diffparse import Diff
+from ._paths import is_non_code_path
 
 _COMMENT_RE = re.compile(r"^\s*(#|//|/\*|\*)")
-
-# Paths where matches are evidence of *content*, not *code*, and never raise flags:
-# tests/fixtures/examples/docs prose, plus markdown/rst/text/asciidoc files anywhere.
-# Brand-fatal otherwise: e.g. a library that intentionally implements `eval` would
-# have its own test calling `obj.eval(...)` flagged critical.
-_NON_CODE_PATH_RE = re.compile(
-    r"(^|/)(tests?|docs?|examples?|fixtures?|samples?|spec|specs|benchmarks?)/"
-    r"|\.(md|rst|txt|adoc|asciidoc)$",
-    re.I,
-)
 
 # Always-dangerous sinks. Tokens fragment-assembled so no bare literal appears.
 # Both 'eval' and 'exec' use the same lookbehind so method calls like `.eval(` /
@@ -51,7 +42,7 @@ def _is_sink(line: str) -> bool:
 def scan(diff: Diff, claims: list[Claim]) -> list[Flag]:
     out: list[Flag] = []
     for f in diff.files:
-        if _NON_CODE_PATH_RE.search(f.path):
+        if is_non_code_path(f.path):
             continue
         for add in f.added:
             if _is_sink(add.content):

@@ -8,21 +8,34 @@ from .types import Claim
 # write/cover) — passive prose can't trip the parser.
 _TEST_RE = re.compile(
     r"\b(add(?:ed|s|ing)?|includ(?:e|ed|es|ing)|wrote|writ(?:e|es|ing)|"
-    r"cover(?:ed|s|ing)?|introduce(?:d|s)?)\b[^.\n]*\btests?\b",
+    r"cover(?:s|ing)?|introduce(?:d|s)?)\b[^.\n]*\btests?\b",
     re.I,
 )
 _NO_DEPS_RE = re.compile(r"\bno\b[^.\n]*\b(dependenc(?:y|ies)|packages?|deps)\b", re.I)
-_NO_BREAKING_RE = re.compile(r"\bno\b[^.\n]*\bbreaking\b", re.I)
-_SCOPE_ONLY_RE = re.compile(r"\b(only|just|solely|merely)\b", re.I)
+# Genuine scope restriction: "only touches X", "only in the frontend", etc.
+# Does NOT fire on filler like "just a routine release" or "only a minor fix"
+# (scope word immediately followed by indefinite article = softener, not a scope claim).
+_SCOPE_ONLY_RE = re.compile(r"\b(only|just|solely|merely)\b(?!\s+an?\b)", re.I)
 
 # Negation guard: if the same sentence/clause first asserts "did not" or "no"
 # adjacent to a claim word, drop the claim. Catches "we did NOT add tests" and
-# "no tests added" without breaking on "no breaking changes" (which is the
-# intended claim, not a negation of one).
+# "no tests added". Both this and _TEST_RE already confine
+# each match to one sentence via [^.\n]*; the suppression is applied per-sentence
+# (see _claims_tests) so a negation in one sentence can't kill a genuine claim
+# in another (e.g. "Add tests for X" + "doesn't touch the existing tests").
 _NEGATED_TEST_RE = re.compile(
     r"\b(?:not?|didn'?t|haven'?t|hasn'?t|won'?t|never)\b[^.\n]*\btests?\b",
     re.I,
 )
+_SENTENCE_SPLIT_RE = re.compile(r"[.\n]")
+
+
+def _claims_tests(text: str) -> bool:
+    """True if any single sentence asserts adding tests without negating it."""
+    for sentence in _SENTENCE_SPLIT_RE.split(text):
+        if _TEST_RE.search(sentence) and not _NEGATED_TEST_RE.search(sentence):
+            return True
+    return False
 
 _CUTOFF_RE = re.compile(
     r"(?is)("
@@ -57,12 +70,10 @@ def _human_body(body: str) -> str:
 def extract_claims(title: str, body: str) -> list[Claim]:
     text = f"{title}\n{_human_body(body)}"
     claims: list[Claim] = []
-    if _TEST_RE.search(text) and not _NEGATED_TEST_RE.search(text):
+    if _claims_tests(text):
         claims.append(Claim(kind="adds_tests", raw="claims to add tests"))
     if _NO_DEPS_RE.search(text):
         claims.append(Claim(kind="no_deps", raw="claims no dependency changes"))
-    if _NO_BREAKING_RE.search(text):
-        claims.append(Claim(kind="no_breaking", raw="claims no breaking changes"))
     if _SCOPE_ONLY_RE.search(text):
         claims.append(Claim(kind="scope_only", value=title, raw="claims a narrow scope ('only'/'just')"))
     return claims

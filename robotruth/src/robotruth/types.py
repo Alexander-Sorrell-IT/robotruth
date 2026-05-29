@@ -5,7 +5,7 @@ from pydantic import BaseModel
 Severity = Literal["critical", "moderate", "minor"]
 Verdict = Literal["HONEST", "MOSTLY HONEST", "SNEAKY", "LIAR"]
 Grade = Literal["A", "B", "C", "D", "F"]
-ClaimKind = Literal["adds_tests", "no_deps", "no_breaking", "scope_only"]
+ClaimKind = Literal["adds_tests", "no_deps", "scope_only"]
 
 
 class Flag(BaseModel):

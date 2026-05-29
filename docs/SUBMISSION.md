@@ -28,7 +28,7 @@ The verdict path is deterministic by design. LLMs do not decide.
 3. **Scan** the diff with four deterministic passes — `dangerous_primitives`, `dependencies`, `scope_drift`, `security_guard`. Each flag carries file, line, severity, and the literal evidence.
 4. **Grade** with a pure function whose decomposition is shown on the receipt: *"D: 1 undisclosed (1 critical), 0 unhonored; score=3."*
 
-One engine — ~460 lines, no ML libraries — is imported by the web app, the MCP server, the per-repo scorecard, and the upcoming CLI. **No adapter contains audit logic.** The category lives in the function, not the surface.
+One engine — ~590 lines, no ML libraries — is imported by the web app, the MCP server, the per-repo scorecard, and the upcoming CLI. **No adapter contains audit logic.** The category lives in the function, not the surface.
 
 The engine is **precision-biased**: it never accuses, it cites. Claims it can't verify from the diff surface as *unverified*, not as lies. The brand decision is that **false positives are the failure mode we refuse, false negatives are the failure mode we own and disclose** — an accountability product that ever wrongly accuses an honest PR is no longer one. Every flag carries the literal evidence the regex matched so a reader can audit the auditor.
 
@@ -40,7 +40,7 @@ Beyond the single-PR receipt, the same engine fans out:
 
 - **Wall of Shame** — global feed of caught bot-authored PRs.
 - **Per-repo scorecard** — `/repo/{owner}/{name}` audits the recent PRs of any public repo on demand and emits an honesty score.
-- **MCP server** — `pip install` a stdio server that exposes `audit_pr` to Claude Code, Cursor, and Cline. The agent audits the PR it just opened. Self-incrimination, in-workflow.
+- **MCP server** — a stdio server (install via `uv pip install -e .` from the repo) that exposes `audit_pr` to Claude Code, Cursor, and Cline. The agent audits the PR it just opened. Self-incrimination, in-workflow.
 - **Deploy Receipt preview** — [`/deploy/example`](https://robotruth-rdft.vercel.app/deploy/example) shows the same receipt grammar applied to a deployment-agent claim. Same verdict words, same three buckets, same evidence citations at `resource:line`. The scanners are different; the protocol is the same.
 
 ## Who it's for
@@ -51,7 +51,7 @@ The staff engineer who is now the bottleneck on agent-authored PRs. In 2026 a te
 
 - **Engine:** Python — `httpx`, `pydantic`, `unidiff`. No ML libraries.
 - **Surfaces:** Next.js 16 frontend on Vercel · FastAPI on Vercel Python functions · Upstash Redis for durable receipts · Python MCP SDK for the stdio server.
-- **Verification:** Playwright against production. Paste PR → live API → DOM assertion on verdict, zero console errors.
+- **Verification:** 66 pytest tests covering claim extraction, all four scanners, grading logic, and API endpoints. TypeScript strict mode passes on the web surface. Every scanner has regression tests pinning the precision decisions made during the build.
 - **Build copilot:** Claude Code (Opus 4.7). Every architectural call — engine-vs-API split, deterministic verdict path, claim-editor UI as precision insurance, MCP-as-distribution, Wall attribution policy (bots only / humans anonymized) — was worked through with the assistant in full transparency. This submission was itself adversarially edited by parallel agent reviewers before final draft.
 - **Analytics:** Novus instruments the funnel `landing → paste → receipt → share → wall-submit`. The hypothesis we're measuring: *receipts spread (high share rate), evidence doesn't always follow them home (low submit rate)*. That share→submit cliff is the next surface to design for — not more scanners.
 

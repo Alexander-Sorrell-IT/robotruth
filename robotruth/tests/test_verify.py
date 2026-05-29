@@ -22,3 +22,13 @@ def test_delivered_when_tests_present():
 def test_unhonored_when_no_deps_claimed_but_deps_changed():
     delivered, unhonored = verify_claims(_diff(["package.json"]), [Claim(kind="no_deps")])
     assert len(unhonored) == 1
+
+
+def test_unhonored_when_no_deps_claimed_but_go_mod_changed():
+    delivered, unhonored = verify_claims(_diff(["go.mod"]), [Claim(kind="no_deps")])
+    assert delivered == [] and len(unhonored) == 1
+
+
+def test_unhonored_when_no_deps_claimed_but_cargo_changed():
+    delivered, unhonored = verify_claims(_diff(["Cargo.toml"]), [Claim(kind="no_deps")])
+    assert delivered == [] and len(unhonored) == 1

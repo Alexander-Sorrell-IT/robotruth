@@ -12,7 +12,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     const und = r.undisclosed?.length ?? 0;
     const unh = r.unhonored?.length ?? 0;
     const del = r.delivered?.length ?? 0;
-    title = `${r.verdict} · grade ${r.grade} · ${r.pr.repo} #${r.pr.number}`;
+    const prLabel = r.pr ? `${r.pr.repo} #${r.pr.number}` : "Direct diff";
+    title = `${r.verdict} · grade ${r.grade} · ${prLabel}`;
     // Verdict-specific description so the OG preview tells the story even
     // before the image renders — and so Slack/Discord text-only unfurls work.
     const parts: string[] = [];
@@ -20,11 +21,12 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
     if (unh > 0) parts.push(`${unh} unhonored`);
     if (del > 0) parts.push(`${del} delivered`);
     const counts = parts.length > 0 ? parts.join(" · ") : "0 flags raised";
-    description = `${r.verdict} · ${r.pr.title} — ${counts}. Deterministic receipt · no model in the verdict path.`;
+    const prTitle = r.pr?.title ?? "Pasted diff";
+    description = `${r.verdict} · ${prTitle} — ${counts}. Deterministic receipt · no model in the verdict path.`;
   } catch {
     // receipt not found — use defaults
   }
-  const img = `/api/og?id=${id}`;
+  const img = `/api/og?id=${encodeURIComponent(id)}`;
   return {
     title,
     description,

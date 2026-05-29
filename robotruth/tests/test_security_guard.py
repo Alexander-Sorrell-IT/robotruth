@@ -60,6 +60,51 @@ def test_cross_file_rename_not_flagged():
     assert scan(d, []) == []
 
 
+def test_no_flag_on_removal_in_docs_or_tests():
+    # A guard token removed from a doc code-fence or a test refactor is content,
+    # not a security regression — must NOT raise a brand-fatal critical flag.
+    assert scan(_rm("docs/auth-tutorial.md", "@login_required"), []) == []
+    assert scan(_rm("README.rst", "app.use(csrfProtection())"), []) == []
+    assert scan(_rm("test_views.py", "@login_required"), []) == []
+    assert scan(_rm("tests/test_auth.py", "@requireAuth"), []) == []
+    assert scan(_rm("auth.spec.ts", "app.use(csrfProtection())"), []) == []
+
+
+def test_substring_test_path_still_flagged():
+    # Over-suppression guard: a real source file that merely contains "test" as a
+    # substring (not the test_/_test convention) must STILL flag a removed guard.
+    flags = scan(_rm("latest_release.py", "@login_required"), [])
+    assert len(flags) == 1 and flags[0].severity == "critical"
+
+
+def test_no_flag_on_log_line_mentioning_guard_token():
+    # logger.info("login_required check") has '(' on the line but the guard
+    # token is inside a string literal — must NOT flag critical.
+    assert scan(_rm("views/secure.py", 'logger.info("login_required check passed")'), []) == []
+    assert scan(_rm("server.ts", 'console.log("csrf token validation failed")'), []) == []
+
+
+def test_import_only_addition_does_not_mask_removal():
+    # Bypass attempt: remove @login_required from a view, add a bare import of
+    # login_required in an unrelated file.  The import is not a guard usage
+    # (no call parens, no decorator @), so it must NOT suppress the flag.
+    d = parse_diff(
+        "diff --git a/views/secure.py b/views/secure.py\n"
+        "--- a/views/secure.py\n+++ b/views/secure.py\n"
+        "@@ -1,3 +1,2 @@\n"
+        " from django.shortcuts import render\n"
+        "-@login_required\n"
+        " def secure(request):\n"
+        "diff --git a/utils/helpers.py b/utils/helpers.py\n"
+        "--- a/utils/helpers.py\n+++ b/utils/helpers.py\n"
+        "@@ -1,1 +1,2 @@\n"
+        " x = 1\n"
+        "+from django.contrib.auth.decorators import login_required\n"
+    )
+    flags = scan(d, [])
+    assert len(flags) == 1 and flags[0].severity == "critical"
+
+
 def test_cross_file_removal_still_flagged():
     # If the same token is NOT added back anywhere in the diff, the removal
     # is still a regression. Regression guard: don't let the cross-file

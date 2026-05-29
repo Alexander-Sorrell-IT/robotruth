@@ -61,6 +61,8 @@ def audit_url(req: UrlReq) -> dict:
         raise HTTPException(400, str(e))
     except LookupError as e:
         raise HTTPException(404, str(e))
+    except httpx.HTTPError:
+        raise HTTPException(502, "Could not reach GitHub (rate limit or upstream error); try again shortly.")
     return _store_and_return(receipt.model_dump())
 
 
@@ -69,7 +71,12 @@ def audit_paste(req: DiffReq) -> dict:
     if len(req.diff.encode("utf-8")) > config.DIFF_MAX_BYTES:
         raise HTTPException(413, "Diff too large; trim it or audit a smaller PR.")
     pr = PRMeta(repo=req.repo, number=req.number, title=req.title, url=req.url, body=req.body)
-    receipt = audit_diff(pr, req.diff, keep_claim_kinds=req.keep_claim_kinds)
+    try:
+        receipt = audit_diff(pr, req.diff, keep_claim_kinds=req.keep_claim_kinds)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except LookupError as e:
+        raise HTTPException(404, str(e))
     return _store_and_return(receipt.model_dump())
 
 
@@ -191,16 +198,19 @@ def repo_scorecard(owner: str, name: str) -> dict:
     headers = {"Accept": "application/vnd.github+json", "User-Agent": "robotruth"}
     if config.GITHUB_TOKEN:
         headers["Authorization"] = f"Bearer {config.GITHUB_TOKEN}"
-    with httpx.Client(timeout=20) as client:
-        r = client.get(
-            f"https://api.github.com/repos/{owner}/{name}/pulls",
-            params={"state": "all", "per_page": 8, "sort": "created", "direction": "desc"},
-            headers=headers,
-        )
-        if r.status_code == 404:
-            raise HTTPException(404, f"Repo not found: {owner}/{name}")
-        r.raise_for_status()
-        pulls = r.json()
+    try:
+        with httpx.Client(timeout=20) as client:
+            r = client.get(
+                f"https://api.github.com/repos/{owner}/{name}/pulls",
+                params={"state": "all", "per_page": 8, "sort": "created", "direction": "desc"},
+                headers=headers,
+            )
+            if r.status_code == 404:
+                raise HTTPException(404, f"Repo not found: {owner}/{name}")
+            r.raise_for_status()
+            pulls = r.json()
+    except httpx.HTTPError:
+        raise HTTPException(502, "Could not reach GitHub (rate limit or upstream error); try again shortly.")
     items: list[dict] = []
     good = 0
     for p in pulls:
@@ -220,5 +230,5 @@ def repo_scorecard(owner: str, name: str) -> dict:
         })
         if receipt.grade in ("A", "B"):
             good += 1
-    score = round(100 * good / len(items)) if items else 0
+    score = round(100 * good / len(items)) if items else None
     return {"repo": f"{owner}/{name}", "score": score, "items": items}

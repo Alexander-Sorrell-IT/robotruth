@@ -61,6 +61,26 @@ def test_test_directory_skipped():
     assert scan(_add("fixtures/bad.py", ("ev" + "al") + "(s)"), []) == []
 
 
+def test_test_files_skipped_by_filename_convention():
+    # Tests don't only live under tests/ — pytest discovers test_*.py / *_test.py /
+    # conftest.py next to source, and JS/TS use *.test.* / *.spec.*. These call
+    # eval/exec/etc legitimately, so a sink in them must NOT flag (brand-fatal FP).
+    assert scan(_add("test_parser.py", ("ev" + "al") + "(code)"), []) == []
+    assert scan(_add("src/parser_test.py", ("ev" + "al") + "(code)"), []) == []
+    assert scan(_add("conftest.py", ("ev" + "al") + "(code)"), []) == []
+    assert scan(_add("pkg/handler_test.go", ("ev" + "al") + "(code)"), []) == []
+    assert scan(_add("app/util.test.js", ("ev" + "al") + "(code)"), []) == []
+    assert scan(_add("app/util.spec.ts", ("ev" + "al") + "(code)"), []) == []
+
+
+def test_substring_test_files_still_scanned():
+    # Over-suppression guard: real source files that merely contain "test" as a
+    # substring (not the test_/_test convention) must STILL be scanned for sinks.
+    for path in ("attestation.py", "latest_release.py", "contest.py", "src/fastest.py"):
+        flags = scan(_add(path, ("ev" + "al") + "(userInput)"), [])
+        assert len(flags) == 1 and flags[0].severity == "critical", path
+
+
 def test_doc_file_skipped():
     # Rendered docs (.rst, .md) often contain backtick-wrapped or indented
     # code examples. The flight-recorder for our brand cannot fire on prose.

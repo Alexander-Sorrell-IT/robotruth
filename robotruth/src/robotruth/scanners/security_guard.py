@@ -3,6 +3,7 @@ import re
 from ..types import Flag
 from ..claims import Claim
 from ..diffparse import Diff
+from ._paths import is_non_code_path
 
 # High-signal auth/security guard tokens, curated. Bare 'helmet'/'cors' removed
 # (collide with react-helmet and the ubiquitous substring 'cors'). 'permission'
@@ -18,12 +19,20 @@ _COMMENT_RE = re.compile(r"^\s*(#|//|/\*|\*|<!--)")
 
 def _is_guard_usage(line: str) -> bool:
     """True only if the line USES a guard as code: a call `tok(...)` or a
-    decorator `@...` — not a bare identifier, an import, or a comment."""
+    decorator `@...` — not a bare identifier, an import, string, or comment."""
     if _COMMENT_RE.match(line):
         return False
-    if not _GUARD_RE.search(line):
+    m = _GUARD_RE.search(line)
+    if not m:
         return False
-    return ("(" in line) or line.lstrip().startswith("@")
+    if line.lstrip().startswith("@"):
+        return True
+    # If the token is inside a string literal (odd number of quotes before it),
+    # it's log/error text — not a code usage.
+    before = line[: m.start()]
+    if before.count('"') % 2 == 1 or before.count("'") % 2 == 1:
+        return False
+    return "(" in line
 
 
 def _all_added_guard_tokens(diff: Diff) -> set[str]:
@@ -34,8 +43,13 @@ def _all_added_guard_tokens(diff: Diff) -> set[str]:
     decorators get graded critical."""
     tokens: set[str] = set()
     for f in diff.files:
+        # Same non-code filter as the removal loop: a guard token in a doc
+        # code-fence or test file must not count as a rename target and mask a
+        # genuine removal in production code.
+        if is_non_code_path(f.path):
+            continue
         for add in f.added:
-            if _COMMENT_RE.match(add.content):
+            if not _is_guard_usage(add.content):
                 continue
             for m in _GUARD_RE.finditer(add.content):
                 tokens.add(m.group(0).lower())
@@ -46,6 +60,11 @@ def scan(diff: Diff, claims: list[Claim]) -> list[Flag]:
     out: list[Flag] = []
     added_tokens = _all_added_guard_tokens(diff)
     for f in diff.files:
+        # Removals inside tests/docs/examples are content, not a security
+        # regression — a tutorial code-fence or a test refactor that drops a
+        # decorator must never raise a brand-fatal critical flag (§13).
+        if is_non_code_path(f.path):
+            continue
         for rem in f.removed:
             if not _is_guard_usage(rem.content):
                 continue

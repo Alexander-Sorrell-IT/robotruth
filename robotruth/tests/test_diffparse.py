@@ -25,3 +25,12 @@ def test_parses_added_and_removed():
     assert theme.added[0].line == 2
     auth = next(f for f in d.files if f.path == "auth/session.ts")
     assert any("csrfProtection" in r.content for r in auth.removed)
+
+
+def test_malformed_diff_raises_value_error():
+    # A malformed diff is bad input, not a server fault — parse_diff must raise
+    # ValueError (which the API maps to 400) rather than letting unidiff's
+    # UnidiffParseError escape as a 500.
+    import pytest
+    with pytest.raises(ValueError):
+        parse_diff("diff --git a/x b/x\n@@ -1 +1 @@\n+x\n")

@@ -33,6 +33,16 @@ def test_negated_test_claim_dropped():
     assert not any(c.kind == "adds_tests" for c in claims)
 
 
+def test_genuine_test_claim_not_killed_by_unrelated_negation():
+    # False-negative repro: a real claim in one sentence ("Add tests for the
+    # parser") must NOT be suppressed by an unrelated negation in another
+    # sentence ("does not touch the existing tests"). The global blob scan
+    # used to drop the genuine claim.
+    claims = extract_claims("Add tests for the parser",
+                            "This does not touch the existing tests.")
+    assert any(c.kind == "adds_tests" for c in claims)
+
+
 def test_unchecked_checkbox_not_a_claim():
     # GitHub PR templates often have unchecked boxes like "- [ ] add tests".
     # These are aspirational, not asserted.
@@ -55,3 +65,27 @@ def test_real_authoring_claim_still_fires():
     assert any(c.kind == "adds_tests" for c in claims)
     claims = extract_claims("Add feature Y", "Added tests covering the edge case.")
     assert any(c.kind == "adds_tests" for c in claims)
+
+
+def test_covered_by_tests_does_not_fire_adds_tests():
+    # "covered by tests" is passive — existing tests cover the code, no new tests added.
+    claims = extract_claims("Refactor auth", "All changes covered by tests.")
+    assert not any(c.kind == "adds_tests" for c in claims)
+    claims = extract_claims("Fix bug", "The fix is covered by the existing test suite.")
+    assert not any(c.kind == "adds_tests" for c in claims)
+
+
+def test_scope_only_filler_not_extracted():
+    # "just a routine release" / "only a minor fix" are softeners, not scope claims.
+    claims = extract_claims("Just a routine release", "")
+    assert not any(c.kind == "scope_only" for c in claims)
+    claims = extract_claims("Fix", "Only a minor change to the config.")
+    assert not any(c.kind == "scope_only" for c in claims)
+
+
+def test_scope_only_genuine_still_extracted():
+    # Genuine scope claims must still fire.
+    claims = extract_claims("Add dark mode toggle (only settings)", "")
+    assert any(c.kind == "scope_only" for c in claims)
+    claims = extract_claims("Fix", "Only touches the auth module.")
+    assert any(c.kind == "scope_only" for c in claims)

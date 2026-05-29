@@ -3,7 +3,8 @@ from .types import Flag, Claim
 from .diffparse import Diff
 
 _DEP_NAMES = {"package.json", "requirements.txt", "pyproject.toml", "Pipfile",
-              "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock", "Pipfile.lock"}
+              "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock", "Pipfile.lock",
+              "go.mod", "go.sum", "Cargo.toml", "Cargo.lock"}
 
 
 def _has_test_files(diff: Diff) -> bool:

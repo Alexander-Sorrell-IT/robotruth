@@ -13,5 +13,14 @@ export async function auditUrl(url: string, keepClaimKinds?: string[]): Promise<
 export async function getReceipt(id: string): Promise<Receipt> {
   const r = await fetch(`${BASE}/api/receipt/${id}`, { cache: "no-store" });
   if (!r.ok) throw new Error("Receipt not found");
-  return r.json();
+  const d = (await r.json()) as Receipt;
+  // Defensive: the render path (ReceiptCard, ClaimsEditor) assumes these are
+  // always arrays. A partial/malformed receipt with a missing/null list would
+  // otherwise crash the page instead of showing a clean state.
+  d.delivered ??= [];
+  d.undisclosed ??= [];
+  d.unhonored ??= [];
+  d.parsed_claims ??= [];
+  d.claim_kinds ??= [];
+  return d;
 }

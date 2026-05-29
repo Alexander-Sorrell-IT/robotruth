@@ -85,7 +85,7 @@ function Bucket({
 }
 
 const SCANNERS = ["dangerous_primitives", "dependencies", "scope_drift", "security_guard"];
-const CLAIM_PATTERNS = ["adds_tests", "no_deps", "no_breaking", "scope_only"];
+const CLAIM_PATTERNS = ["adds_tests", "no_deps", "scope_only"];
 
 export function ReceiptCard({ receipt }: { receipt: Receipt }) {
   const c = VERDICT_COLOR[receipt.verdict] ?? "#444";
@@ -122,7 +122,7 @@ export function ReceiptCard({ receipt }: { receipt: Receipt }) {
             color: "#9ca3af",
           }}
         >
-          RoboTruth · INTENT RECEIPT &nbsp;·&nbsp; {receipt.pr.repo} #{receipt.pr.number}
+          RoboTruth · INTENT RECEIPT {receipt.pr ? <>&nbsp;·&nbsp; {receipt.pr.repo} #{receipt.pr.number}</> : null}
         </div>
         <div
           style={{
@@ -133,7 +133,7 @@ export function ReceiptCard({ receipt }: { receipt: Receipt }) {
             lineHeight: 1.35,
           }}
         >
-          {receipt.pr.title}
+          {receipt.pr?.title ?? "Pasted diff"}
         </div>
       </div>
 
@@ -214,7 +214,7 @@ export function ReceiptCard({ receipt }: { receipt: Receipt }) {
           {claimsParsed === 0 ? (
             <>
               <strong style={{ color: "#111827" }}>0 claim patterns matched</strong> the PR body.
-              We look for 4 explicit patterns ({CLAIM_PATTERNS.join(", ")}). This PR didn't include any —
+              We look for {CLAIM_PATTERNS.length} explicit patterns ({CLAIM_PATTERNS.join(", ")}). This PR didn't include any —
               verdict is based on the diff scanners alone.
             </>
           ) : (
@@ -250,14 +250,16 @@ export function ReceiptCard({ receipt }: { receipt: Receipt }) {
         />
       </div>
 
-      {/* Claims editor */}
-      <div style={{ padding: "0 24px" }}>
-        <ClaimsEditor
-          prUrl={receipt.pr.url}
-          parsedClaims={receipt.parsed_claims}
-          claimKinds={receipt.claim_kinds}
-        />
-      </div>
+      {/* Claims editor — only available when we have a PR URL to re-audit against */}
+      {receipt.pr && (
+        <div style={{ padding: "0 24px" }}>
+          <ClaimsEditor
+            prUrl={receipt.pr.url}
+            parsedClaims={receipt.parsed_claims}
+            claimKinds={receipt.claim_kinds}
+          />
+        </div>
+      )}
 
       {/* Footer */}
       <div

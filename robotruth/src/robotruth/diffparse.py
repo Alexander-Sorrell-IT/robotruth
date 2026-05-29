@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 from unidiff import PatchSet
+from unidiff.errors import UnidiffParseError
 
 
 @dataclass
@@ -35,7 +36,12 @@ class Diff:
 
 
 def parse_diff(diff_text: str) -> Diff:
-    patch = PatchSet(diff_text)
+    try:
+        patch = PatchSet(diff_text)
+    except UnidiffParseError as e:
+        # Malformed diff text is bad input, not a server fault — surface it as a
+        # ValueError so the API layer maps it to 400 instead of crashing 500.
+        raise ValueError(f"Malformed diff: {e}") from e
     files: list[FileChange] = []
     for pf in patch:
         fc = FileChange(path=pf.path, is_new=pf.is_added_file, is_removed=pf.is_removed_file)

@@ -16,6 +16,13 @@ def _new_id() -> str:
     return secrets.token_urlsafe(6)
 
 
+def _is_valid_id(rid: str) -> bool:
+    # Ids come from token_urlsafe: only [A-Za-z0-9_-]. Reject anything else so a
+    # crafted id can never escape the store root (defense-in-depth alongside the
+    # HTTP route's path converter, which already blocks slashes).
+    return bool(rid) and all(c.isalnum() or c in "-_" for c in rid)
+
+
 class FileStore:
     def __init__(self, root: Path | str) -> None:
         self.root = Path(root)
@@ -27,6 +34,8 @@ class FileStore:
         return rid
 
     def get(self, rid: str) -> dict | None:
+        if not _is_valid_id(rid):
+            return None
         p = self.root / f"{rid}.json"
         if not p.exists():
             return None
