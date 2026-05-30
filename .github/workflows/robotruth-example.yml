@@ -1,0 +1,31 @@
+name: RoboTruth Audit
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  robotruth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Audit PR with RoboTruth
+        run: |
+          pip install httpx --quiet
+          python - <<'EOF'
+          import httpx, os, sys, json
+          url = os.environ["PR_URL"]
+          r = httpx.post(
+            "https://robotruth.vercel.app/api/audit",
+            json={"url": url},
+            timeout=60,
+          )
+          d = r.json()["receipt"]
+          print(f"RoboTruth: {d['verdict']} · Grade {d['grade']}")
+          print(f"  {d['math']}")
+          if d["undisclosed"]:
+            for f in d["undisclosed"]:
+              print(f"  ⚠ {f['label']} — {f.get('file','')}:{f.get('line','')}")
+          sys.exit(0 if d["grade"] in ("A", "B") else 1)
+          EOF
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}

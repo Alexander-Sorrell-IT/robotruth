@@ -1,6 +1,7 @@
 import type { Receipt, Flag } from "@/lib/receipt";
 import { ClaimsEditor } from "@/components/ClaimsEditor";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
+import { CopyImageButton } from "@/components/CopyImageButton";
 import Link from "next/link";
 
 const VERDICT_COLOR: Record<string, string> = {
@@ -87,7 +88,7 @@ function Bucket({
 const SCANNERS = ["dangerous_primitives", "dependencies", "scope_drift", "security_guard"];
 const CLAIM_PATTERNS = ["adds_tests", "no_deps", "scope_only"];
 
-export function ReceiptCard({ receipt }: { receipt: Receipt }) {
+export function ReceiptCard({ receipt, id }: { receipt: Receipt; id?: string }) {
   const c = VERDICT_COLOR[receipt.verdict] ?? "#444";
   const bg = VERDICT_BG[receipt.verdict] ?? "#f9fafb";
   const flagCount =
@@ -293,6 +294,7 @@ export function ReceiptCard({ receipt }: { receipt: Receipt }) {
             Audit your own →
           </Link>
           <CopyLinkButton />
+          {id && <CopyImageButton id={id} />}
         </div>
       </div>
     </div>

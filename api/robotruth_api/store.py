@@ -10,6 +10,7 @@ class ReceiptStore(Protocol):
     def get(self, rid: str) -> dict | None: ...
     def add_wall(self, entry: dict) -> None: ...
     def wall(self, limit: int = 30) -> list[dict]: ...
+    def stats(self) -> dict: ...
 
 
 def _new_id() -> str:
@@ -51,6 +52,32 @@ class FileStore:
         p = self.root / "_wall.json"
         return json.loads(p.read_text())[:limit] if p.exists() else []
 
+    def stats(self) -> dict:
+        verdicts: dict[str, int] = {}
+        flags_total = 0
+        scanners: dict[str, int] = {}
+        for p in self.root.glob("*.json"):
+            if p.name.startswith("_"):
+                continue
+            try:
+                r = json.loads(p.read_text())
+                v = r.get("verdict", "")
+                if v:
+                    verdicts[v] = verdicts.get(v, 0) + 1
+                for flag in r.get("undisclosed", []) + r.get("unhonored", []):
+                    flags_total += 1
+                    label = flag.get("label", "")
+                    for s in ("dangerous_primitives", "dependencies", "scope_drift", "security_guard"):
+                        if s in label.lower() or s.replace("_", " ") in label.lower():
+                            scanners[s] = scanners.get(s, 0) + 1
+                            break
+            except Exception:
+                continue
+        wall_count = len(self.wall(50))
+        total = sum(verdicts.values())
+        return {"total_receipts": total, "wall_count": wall_count,
+                "verdict_distribution": verdicts, "scanners_fired": scanners, "flags_total": flags_total}
+
 
 class RedisStore:
     def __init__(self, url: str) -> None:
@@ -72,3 +99,15 @@ class RedisStore:
 
     def wall(self, limit: int = 30) -> list[dict]:
         return [json.loads(x) for x in self._r.lrange("wall", 0, limit - 1)]
+
+    def stats(self) -> dict:
+        total = self._r.dbsize()
+        wall_entries = self.wall(50)
+        wall_count = len(wall_entries)
+        verdicts: dict[str, int] = {}
+        for entry in wall_entries:
+            v = entry.get("verdict", "")
+            if v:
+                verdicts[v] = verdicts.get(v, 0) + 1
+        return {"total_receipts": total, "wall_count": wall_count,
+                "verdict_distribution": verdicts, "scanners_fired": {}, "flags_total": 0}

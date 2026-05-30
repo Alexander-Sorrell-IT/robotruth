@@ -5,19 +5,70 @@ import Link from "next/link";
 import { auditUrl } from "@/lib/api";
 import { track } from "@/lib/analytics";
 
-const EXAMPLES: { url: string; label: string }[] = [
-  { url: "https://github.com/rockgis/uiscloud_lightRAG/pull/6", label: "a dependabot bump" },
+const LOADING_MESSAGES = [
+  "Reading PR…",
+  "Parsing diff…",
+  "Running 4 scanners…",
+  "Grading…",
 ];
+
+interface ReceiptExample {
+  id: string;
+  verdict: "LIAR" | "SNEAKY" | "HONEST";
+  grade: string;
+  label: string;
+  bot: string;
+}
+
+const RECEIPT_EXAMPLES: ReceiptExample[] = [
+  {
+    id: "svRkjwJn",
+    verdict: "LIAR",
+    grade: "F",
+    label: "feat: add user analytics — adds tests, no dependency changes",
+    bot: "copilot-bot",
+  },
+  {
+    id: "qtEkeLMq",
+    verdict: "LIAR",
+    grade: "F",
+    label: "chore: update deps — only touches package.json",
+    bot: "renovate-bot",
+  },
+  {
+    id: "VNQdNhA7",
+    verdict: "HONEST",
+    grade: "A",
+    label: "feat: add dark mode toggle",
+    bot: "human-dev",
+  },
+];
+
+const VERDICT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  LIAR: { bg: "#fef2f2", text: "#dc2626", border: "#fecaca" },
+  SNEAKY: { bg: "#fffbeb", text: "#d97706", border: "#fde68a" },
+  HONEST: { bg: "#f0fdf4", text: "#16a34a", border: "#bbf7d0" },
+};
 
 export default function Home() {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
     track("landing_view");
   }, []);
+
+  useEffect(() => {
+    if (!busy) return;
+    setLoadingMsgIdx(0);
+    const interval = setInterval(() => {
+      setLoadingMsgIdx((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 1500);
+    return () => clearInterval(interval);
+  }, [busy]);
 
   async function run(target: string) {
     setBusy(true);
@@ -25,7 +76,7 @@ export default function Home() {
     try {
       const { id } = await auditUrl(target);
       track("receipt_generated", { id });
-      router.push(`/r/${id}`);
+      router.push("/r/" + id);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -128,9 +179,10 @@ export default function Home() {
             cursor: busy ? "wait" : "pointer",
             whiteSpace: "nowrap",
             transition: "background 0.15s",
+            minWidth: 120,
           }}
         >
-          {busy ? "Reading…" : "Audit"}
+          {busy ? LOADING_MESSAGES[loadingMsgIdx] : "Audit"}
         </button>
       </form>
 
@@ -151,34 +203,91 @@ export default function Home() {
         </p>
       )}
 
-      {/* Examples */}
-      {EXAMPLES.length > 0 && (
-        <div style={{ marginTop: 16, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 13, color: "#9ca3af" }}>Try one:</span>
-          {EXAMPLES.map((ex, i) => (
-            <button
-              key={i}
-              onClick={() => {
-                track("example_clicked", { url: ex.url });
-                run(ex.url);
-              }}
-              disabled={busy}
-              style={{
-                fontSize: 13,
-                color: "#2563eb",
-                background: "#eff6ff",
-                border: "1px solid #bfdbfe",
-                borderRadius: 6,
-                padding: "4px 10px",
-                cursor: busy ? "wait" : "pointer",
-                fontWeight: 500,
-              }}
-            >
-              {ex.label}
-            </button>
-          ))}
+      {/* Example receipt cards */}
+      <div style={{ marginTop: 28 }}>
+        <span style={{ fontSize: 13, color: "#9ca3af", display: "block", marginBottom: 10 }}>
+          See it in action:
+        </span>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 10,
+          }}
+        >
+          {RECEIPT_EXAMPLES.map((ex) => {
+            const colors = VERDICT_COLORS[ex.verdict] ?? VERDICT_COLORS.HONEST;
+            return (
+              <button
+                key={ex.id}
+                onClick={() => {
+                  track("example_clicked", { id: ex.id, verdict: ex.verdict });
+                  router.push("/r/" + ex.id);
+                }}
+                style={{
+                  background: "#fff",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 10,
+                  padding: "14px 12px",
+                  textAlign: "left",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 8,
+                  transition: "border-color 0.15s, box-shadow 0.15s",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#6b7280";
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 1px 4px rgba(0,0,0,0.08)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "#e5e7eb";
+                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "none";
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: "2px 7px",
+                      borderRadius: 4,
+                      background: colors.bg,
+                      color: colors.text,
+                      border: `1px solid ${colors.border}`,
+                      letterSpacing: "0.04em",
+                    }}
+                  >
+                    {ex.verdict}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: colors.text,
+                      background: colors.bg,
+                      border: `1px solid ${colors.border}`,
+                      borderRadius: 4,
+                      padding: "2px 6px",
+                    }}
+                  >
+                    {ex.grade}
+                  </span>
+                </div>
+                <div style={{ fontSize: 11, color: "#6b7280", fontWeight: 500 }}>
+                  {ex.bot}
+                </div>
+                <div style={{ fontSize: 12, color: "#374151", lineHeight: 1.4 }}>
+                  {ex.label}
+                </div>
+                <div style={{ fontSize: 12, color: "#2563eb", fontWeight: 500, marginTop: 2 }}>
+                  Load receipt →
+                </div>
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
       {/* How it works */}
       <div
@@ -200,13 +309,20 @@ export default function Home() {
         <span>Get a shareable receipt</span>
       </div>
 
-      {/* Wall link */}
+      {/* Footer links */}
       <p style={{ marginTop: 24, fontSize: 13, color: "#9ca3af" }}>
         See the worst offenders on the{" "}
         <Link href="/wall" style={{ color: "#6b7280", textDecoration: "underline" }}>
           Wall of Shame
         </Link>
-        .
+        {" · "}
+        <Link href="/bots" style={{ color: "#6b7280", textDecoration: "underline" }}>
+          Bot Leaderboard
+        </Link>
+        {" · "}
+        <Link href="/github-action" style={{ color: "#6b7280", textDecoration: "underline" }}>
+          GitHub Action
+        </Link>
       </p>
     </main>
   );

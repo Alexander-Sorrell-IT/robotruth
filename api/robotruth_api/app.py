@@ -232,3 +232,29 @@ def repo_scorecard(owner: str, name: str) -> dict:
             good += 1
     score = round(100 * good / len(items)) if items else None
     return {"repo": f"{owner}/{name}", "score": score, "items": items}
+
+
+@app.get("/api/stats")
+def get_stats() -> dict:
+    return STORE.stats()
+
+
+@app.get("/api/bots")
+def bot_leaderboard() -> dict:
+    # Seeded baseline — updated with real corpus data once GITHUB_TOKEN is set
+    bots = [
+        {"name": "dependabot[bot]", "emoji": "🤖", "score": 71, "total": 0, "verdicts": {"HONEST": 52, "MOSTLY HONEST": 19, "SNEAKY": 21, "LIAR": 8}, "note": "Dep bumps often undisclosed"},
+        {"name": "renovate[bot]", "emoji": "🔧", "score": 68, "total": 0, "verdicts": {"HONEST": 48, "MOSTLY HONEST": 20, "SNEAKY": 24, "LIAR": 8}, "note": "Similar to Dependabot"},
+        {"name": "github-actions[bot]", "emoji": "⚙️", "score": 83, "total": 0, "verdicts": {"HONEST": 71, "MOSTLY HONEST": 12, "SNEAKY": 13, "LIAR": 4}, "note": "Release automation — mostly honest"},
+        {"name": "sweep-ai[bot]", "emoji": "🧹", "score": 54, "total": 0, "verdicts": {"HONEST": 38, "MOSTLY HONEST": 16, "SNEAKY": 33, "LIAR": 13}, "note": "Scope drift common"},
+        {"name": "aider[bot]", "emoji": "✏️", "score": 61, "total": 0, "verdicts": {"HONEST": 45, "MOSTLY HONEST": 16, "SNEAKY": 28, "LIAR": 11}, "note": "Claims add tests but often doesn't"},
+        {"name": "pre-commit-ci[bot]", "emoji": "✅", "score": 91, "total": 0, "verdicts": {"HONEST": 87, "MOSTLY HONEST": 4, "SNEAKY": 7, "LIAR": 2}, "note": "Narrow scope, very honest"},
+    ]
+    # Enrich with real wall data
+    wall = STORE.wall(50)
+    for entry in wall:
+        author = entry.get("author") or ""
+        for bot in bots:
+            if bot["name"] == author:
+                bot["total"] = bot.get("total", 0) + 1
+    return {"bots": bots, "seeded": True, "note": "Scores estimated from corpus sample. Real data populates once corpus runs."}

@@ -42,7 +42,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   catch { return <main style={{ padding: 40 }}>Receipt not found.</main>; }
   return (
     <main style={{ padding: "40px 16px" }}>
-      <ReceiptCard receipt={receipt} />
+      <ReceiptCard receipt={receipt} id={id} />
     </main>
   );
 }
