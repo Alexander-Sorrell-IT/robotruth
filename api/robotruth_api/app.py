@@ -10,6 +10,7 @@ from robotruth.types import PRMeta
 from robotruth.engine import audit_diff, audit_pr
 from . import config
 from .store import FileStore, RedisStore, ReceiptStore
+from .pendo import track as pendo_track
 
 app = FastAPI(title="RoboTruth API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -36,6 +37,7 @@ def _store_and_return(receipt: dict) -> dict:
     rid = STORE.put(receipt)
     if receipt.get("verdict") in ("SNEAKY", "LIAR"):
         author = receipt["pr"].get("author")
+        is_bot = bool(author and author.endswith("[bot]"))
         STORE.add_wall({
             "id": rid,
             "repo": receipt["pr"]["repo"],
@@ -43,7 +45,16 @@ def _store_and_return(receipt: dict) -> dict:
             "title": receipt["pr"]["title"],
             "verdict": receipt["verdict"],
             "grade": receipt["grade"],
-            "author": author if (author and author.endswith("[bot]")) else None,
+            "author": author if is_bot else None,
+        })
+        pendo_track("wall_of_shame_entry_added", {
+            "receiptId": rid,
+            "repo": receipt["pr"]["repo"],
+            "prNumber": receipt["pr"]["number"],
+            "verdict": receipt["verdict"],
+            "grade": receipt["grade"],
+            "author": author or "",
+            "isBot": is_bot,
         })
     return {"id": rid, "receipt": receipt}
 
@@ -77,7 +88,17 @@ def audit_paste(req: DiffReq) -> dict:
         raise HTTPException(400, str(e))
     except LookupError as e:
         raise HTTPException(404, str(e))
-    return _store_and_return(receipt.model_dump())
+    result = _store_and_return(receipt.model_dump())
+    pendo_track("diff_audited", {
+        "repo": req.repo,
+        "prNumber": req.number,
+        "diffSizeBytes": len(req.diff.encode("utf-8")),
+        "verdict": receipt.verdict,
+        "grade": receipt.grade,
+        "flagCount": len(receipt.undisclosed) + len(receipt.unhonored),
+        "claimKindsCount": len(receipt.parsed_claims),
+    })
+    return result
 
 
 @app.get("/api/wall")
@@ -177,7 +198,14 @@ def badge(owner: str, name: str) -> Response:
     label is the % of the repo's last 8 PRs grading A or B. Cacheable; if the
     audit can't run (rate limit, private repo, etc.) we return a neutral
     'unverified' badge rather than lying with a 0% score."""
-    score, _n = _score_repo(owner, name)
+    score, sample_size = _score_repo(owner, name)
+    pendo_track("badge_generated", {
+        "repoOwner": owner,
+        "repoName": name,
+        "honestyScore": score if score is not None else -1,
+        "sampleSize": sample_size,
+        "isUnverified": score is None,
+    })
     if score is None:
         right = "unverified"
     else:
@@ -231,6 +259,14 @@ def repo_scorecard(owner: str, name: str) -> dict:
         if receipt.grade in ("A", "B"):
             good += 1
     score = round(100 * good / len(items)) if items else None
+    pendo_track("repo_scorecard_generated", {
+        "repoOwner": owner,
+        "repoName": name,
+        "honestyScore": score if score is not None else -1,
+        "totalPRsAudited": len(items),
+        "goodGradeCount": good,
+        "itemCount": len(items),
+    })
     return {"repo": f"{owner}/{name}", "score": score, "items": items}
 
 

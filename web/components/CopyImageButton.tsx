@@ -13,9 +13,20 @@ export function CopyImageButton({ id }: { id: string }) {
       const blob = await res.blob();
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
       track("image_copied", { id });
+      if (typeof window !== "undefined" && window.pendo) {
+        window.pendo.track("receipt_image_copied", {
+          receiptId: id,
+        });
+      }
       setState("done");
       setTimeout(() => setState("idle"), 2000);
-    } catch {
+    } catch (e) {
+      if (typeof window !== "undefined" && window.pendo) {
+        window.pendo.track("receipt_image_copy_failed", {
+          receiptId: id,
+          errorMessage: (e instanceof Error ? e.message : "Unknown error").substring(0, 200),
+        });
+      }
       setState("error");
       setTimeout(() => setState("idle"), 2000);
     }

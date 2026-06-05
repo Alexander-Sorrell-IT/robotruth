@@ -13,6 +13,13 @@ export function CopyLinkButton() {
       ?.writeText(window.location.href)
       .then(() => {
         track("receipt_shared");
+        if (typeof window !== "undefined" && window.pendo) {
+          const receiptMatch = window.location.pathname.match(/\/r\/(.+)/);
+          window.pendo.track("receipt_link_shared", {
+            receiptUrl: window.location.href,
+            receiptId: receiptMatch ? receiptMatch[1] : "",
+          });
+        }
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       })

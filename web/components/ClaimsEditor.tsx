@@ -13,7 +13,19 @@ export function ClaimsEditor({ prUrl, parsedClaims, claimKinds }: { prUrl: strin
     setBusy(true);
     try {
       const kinds = claimKinds.filter((_, i) => keep[i]);
-      const { id } = await auditUrl(prUrl, kinds);
+      const removedCount = claimKinds.length - kinds.length;
+      const { id, receipt } = await auditUrl(prUrl, kinds);
+      if (typeof window !== "undefined" && window.pendo) {
+        window.pendo.track("claims_reaudited", {
+          prUrl,
+          originalClaimCount: claimKinds.length,
+          keptClaimCount: kinds.length,
+          removedClaimCount: removedCount,
+          newReceiptId: id,
+          newVerdict: receipt.verdict,
+          newGrade: receipt.grade,
+        });
+      }
       router.push(`/r/${id}`);
     } finally { setBusy(false); }
   }
