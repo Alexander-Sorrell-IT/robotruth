@@ -15,14 +15,26 @@ import type { FunnelEvent, EventProps } from "./analytics";
 
 const SITE_ID = process.env.NEXT_PUBLIC_NOVUS_SITE_ID;
 
+// Novus runs on the Pendo agent: the layout.tsx snippet installs window.pendo
+// (a queuing stub until the real agent loads), exposing pendo.track().
+declare global {
+  interface Window {
+    pendo?: { track?: (event: string, props?: Record<string, unknown>) => void };
+  }
+}
+
 export function forwardToNovus(event: FunnelEvent, props: EventProps): void {
   if (!SITE_ID) return; // disabled until access lands — no-op
 
-  // TODO(novus): forward to the real Novus SDK once we have access, e.g.
-  //   window.novus?.track(event, props);
-  // The SDK shape isn't known yet, so for now we log to prove the wiring is
-  // live end-to-end the moment SITE_ID is set.
   if (process.env.NODE_ENV !== "production") {
     console.debug("[novus:forward]", SITE_ID, event, props);
+  }
+
+  // Forward to the Pendo agent. The stub queues calls made before the agent
+  // finishes loading, so this is safe to fire at any time.
+  try {
+    window.pendo?.track?.(event, props);
+  } catch {
+    // analytics must never break the app
   }
 }

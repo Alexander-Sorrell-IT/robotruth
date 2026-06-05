@@ -19,3 +19,6 @@ dist/
 node_modules/
 .next/
 .vercel/
+
+# Local scratch: browser profiles (live session cookies), captures, logs
+.scratch/
