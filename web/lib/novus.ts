@@ -17,11 +17,7 @@ const SITE_ID = process.env.NEXT_PUBLIC_NOVUS_SITE_ID;
 
 // Novus runs on the Pendo agent: the layout.tsx snippet installs window.pendo
 // (a queuing stub until the real agent loads), exposing pendo.track().
-declare global {
-  interface Window {
-    pendo?: { track?: (event: string, props?: Record<string, unknown>) => void };
-  }
-}
+// The Window.pendo type is declared once, canonically, in pendo.d.ts.
 
 export function forwardToNovus(event: FunnelEvent, props: EventProps): void {
   if (!SITE_ID) return; // disabled until access lands — no-op
@@ -33,7 +29,8 @@ export function forwardToNovus(event: FunnelEvent, props: EventProps): void {
   // Forward to the Pendo agent. The stub queues calls made before the agent
   // finishes loading, so this is safe to fire at any time.
   try {
-    window.pendo?.track?.(event, props);
+    // EventProps allows null values; the Pendo agent tolerates them at runtime.
+    window.pendo?.track?.(event, props as Record<string, string | number | boolean>);
   } catch {
     // analytics must never break the app
   }
