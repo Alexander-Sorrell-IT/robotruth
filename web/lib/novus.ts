@@ -5,26 +5,23 @@
 // forwarder layered on top, kept behind this one function so the rest of the
 // app never imports the Novus SDK.
 //
-// To slot Novus in once access is granted — no other file changes:
-//   1. Set NEXT_PUBLIC_NOVUS_SITE_ID in the env (.env.local locally, or the
-//      Vercel project env). Its absence is what keeps this a no-op today.
-//   2. Add the Novus snippet/SDK (e.g. a <Script> in app/layout.tsx) and
-//      replace the TODO below with the real call.
+// Novus is active once its Pendo agent is installed (a <Script> in
+// app/layout.tsx, which exposes window.pendo). The forwarder below fires
+// whenever that agent is present — no env var required (see the NOTE below).
 
 import type { FunnelEvent, EventProps } from "./analytics";
 
-const SITE_ID = process.env.NEXT_PUBLIC_NOVUS_SITE_ID;
-
-// Novus runs on the Pendo agent: the layout.tsx snippet installs window.pendo
-// (a queuing stub until the real agent loads), exposing pendo.track().
+// Novus runs on the Pendo agent, installed unconditionally by the layout.tsx
+// snippet. We forward the §12 funnel whenever that agent is present on the page.
 // The Window.pendo type is declared once, canonically, in pendo.d.ts.
+//
+// NOTE: this does NOT gate on NEXT_PUBLIC_NOVUS_SITE_ID. This (non-standard) Next
+// build does not inline NEXT_PUBLIC_* into the client bundle, so an env gate would
+// read undefined in the browser and never fire. The agent's runtime presence
+// (window.pendo) is the correct, reliable gate instead.
 
 export function forwardToNovus(event: FunnelEvent, props: EventProps): void {
-  if (!SITE_ID) return; // disabled until access lands — no-op
-
-  if (process.env.NODE_ENV !== "production") {
-    console.debug("[novus:forward]", SITE_ID, event, props);
-  }
+  if (typeof window === "undefined") return; // client-only
 
   // Forward to the Pendo agent. The stub queues calls made before the agent
   // finishes loading, so this is safe to fire at any time.
