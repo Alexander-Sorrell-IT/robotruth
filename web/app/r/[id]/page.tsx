@@ -1,5 +1,6 @@
 import { getReceipt } from "@/lib/api";
 import { ReceiptCard } from "@/components/ReceiptCard";
+import { TrackView } from "@/components/TrackView";
 
 // Next.js 16: params is a Promise
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -42,6 +43,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   catch { return <main style={{ padding: 40 }}>Receipt not found.</main>; }
   return (
     <main style={{ padding: "40px 16px" }}>
+      <TrackView event="receipt_viewed" props={{ id, verdict: receipt.verdict, grade: receipt.grade }} />
       <ReceiptCard receipt={receipt} id={id} />
     </main>
   );
