@@ -5,8 +5,8 @@
 **One-line pitch you must land in the first 8 seconds:** *"Paste an AI-written PR — see what it actually did."*
 
 > **Production notes**
-> - Two cuts: **MCP-in** (this script) and **MCP-out** (skip §6). Pick by judge-legibility test before submitting.
-> - Tabs pre-opened: receipt example, Wall of Shame, per-repo scorecard, Novus dashboard, terminal with MCP demo.
+> - Two cuts: **MCP-in** (this script) and **MCP-out** (skip §6). Pick by judge-legibility test before submitting. For the MCP-out cut, run **§5.5 (PR comment bot)** as the in-workflow flex instead — it's more legible to non-engineer judges than MCP.
+> - Tabs pre-opened: receipt example, Wall of Shame, per-repo scorecard, Novus dashboard, terminal with MCP demo, **and a real PR with the RoboTruth comment on it** (e.g. the repo's own PR #6 — RoboTruth auditing itself).
 > - Cursor zoom on during URL paste and verdict reveal. Off otherwise.
 > - Music: 80 BPM lo-fi, ducked under VO. Hard cut on stinger at 0:35 verdict reveal.
 > - Lower-third: `robotruth-rdft.vercel.app` persistent in bottom-right after 0:30.
@@ -20,7 +20,7 @@
 **Visual:** Full-screen GitHub PR page. Title visible: *"Refactor auth middleware — only touches login flow, no breaking changes, added tests."* PR author badge: `dependabot[bot]` or similar. Slow zoom on the PR description.
 
 **VO:**
-> "In 2026, most pull requests are written by agents. They tell you what they did — in their own words."
+> "In 2026, more and more pull requests are written by agents. They tell you what they did — in their own words."
 
 **Sound:** Soft typewriter clack under VO.
 
@@ -77,10 +77,10 @@
 
 ### 1:25 – 1:45 · THE FRONT DOOR — Wall of Shame
 
-**Visual:** Navigate to `/wall`. Grid of caught bot PRs. Cursor hovers two — each verdict animates in. Click one → its receipt fills the frame for a beat.
+**Visual:** Navigate to `/wall`. **Seed the Wall with genuine catches before recording** — run RoboTruth on a few known-sneaky public bot PRs so the feed is real, not staged (the Wall auto-populates from any SNEAKY/LIAR audit). Cursor hovers two caught PRs — each verdict animates in. Click one → its receipt fills the frame for a beat. *If it's still empty at record time, do not fake a grid* — show the honest "Live · scanning · the bots are behaving" empty state and demonstrate a fresh catch via a paste instead.
 
 **VO:**
-> "Don't have a PR to test? Browse the Wall of Shame — every receipt is real, every author is a public bot. New ones land as audits run."
+> "Browse the Wall of Shame — every receipt here is a real catch on a public bot. New ones land as audits run."
 
 ---
 
@@ -90,6 +90,17 @@
 
 **VO:**
 > "Or audit a whole repo. Honesty score, every recent PR scored. Same engine, fanned out."
+
+---
+
+### 1:45 alt · §5.5 · THE LOOP — PR comment bot (use as the flex in the MCP-out cut)
+
+**Visual:** A real GitHub PR page. The CI checks list shows **RoboTruth Audit**. Scroll down to the bot's comment — the RoboTruth receipt rendered *inline on the PR itself*: **✅ HONEST · Grade A** (or a SNEAKY catch on a juicier PR), top flags at `file:line`, **"View the full receipt →"** link. Cursor clicks the link → the full receipt card fills the frame.
+
+**VO:**
+> "Add the GitHub Action and RoboTruth audits every bot PR automatically — and posts the verdict right on the pull request, where reviewers already are. No new tab. The receipt comes to them."
+
+**Note:** film this on a PR with a *non-trivial* catch if you have one; the repo's own PR #6 (HONEST · A) works as a clean fallback that proves it dogfoods.
 
 ---
 

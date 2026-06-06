@@ -4,6 +4,12 @@ on:
   pull_request:
     types: [opened, synchronize]
 
+# One run per PR; a newer push cancels the in-flight run so re-pushes never race
+# into duplicate comments.
+concurrency:
+  group: robotruth-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pull-requests: write
@@ -22,64 +28,85 @@ jobs:
           REPO = os.environ["REPO"]                 # owner/name
           PR_NUMBER = os.environ["PR_NUMBER"]
           GH_TOKEN = os.environ["GH_TOKEN"]
+          IS_FORK = os.environ.get("IS_FORK") == "true"
           API = os.environ.get("ROBOTRUTH_API", "https://robotruth.vercel.app")
           WEB = os.environ.get("ROBOTRUTH_WEB", "https://robotruth-rdft.vercel.app")
           MARKER = "<!-- robotruth-receipt -->"     # lets us find & update our own comment
           EMOJI = {"HONEST": "✅", "MOSTLY HONEST": "🟡", "SNEAKY": "🟠", "LIAR": "🔴"}
 
-          # 1. Audit the PR.
-          resp = httpx.post(f"{API}/api/audit", json={"url": PR_URL}, timeout=60)
-          resp.raise_for_status()
-          data = resp.json()
+          def md_safe(s):
+              # Diff-derived text (e.g. a file path) is attacker-controlled. Neutralize
+              # markdown so it can't break out of a code span or inject @mentions/links.
+              # ​ after @ is a zero-width space that defuses GitHub mentions.
+              return str(s).replace("`", "ʼ").replace("\n", " ").replace("@", "@​")
+
+          # 1. Audit. If the audit service is unreachable, do NOT fail the PR on infra —
+          #    log and exit 0. The CI gate must mean "bad grade", nothing else.
+          try:
+              resp = httpx.post(f"{API}/api/audit", json={"url": PR_URL}, timeout=60)
+              resp.raise_for_status()
+              data = resp.json()
+          except Exception as e:
+              print(f"::warning::RoboTruth audit unavailable ({e}); skipping gate.")
+              sys.exit(0)
+
           rid, d = data["id"], data["receipt"]
           verdict, grade = d["verdict"], d["grade"]
           print(f"RoboTruth: {verdict} · Grade {grade}")
           print(f"  {d['math']}")
 
-          # 2. Build the comment. Top flags by severity (critical first), undisclosed
-          #    ("did but didn't say") + unhonored ("said but didn't do").
+          # 2. Build the comment. Top flags by severity; md_safe() every interpolated field.
           rank = {"critical": 0, "moderate": 1, "minor": 2}
           flags = [("⚠ undisclosed", f) for f in d.get("undisclosed", [])]
           flags += [("✗ claimed, missing", f) for f in d.get("unhonored", [])]
           flags.sort(key=lambda x: rank.get(x[1].get("severity", "moderate"), 1))
 
-          lines = [MARKER, f"### {EMOJI.get(verdict, '•')} RoboTruth — {verdict} · Grade {grade}", "", d["math"], ""]
+          lines = [MARKER, f"### {EMOJI.get(verdict, '•')} RoboTruth — {verdict} · Grade {grade}", "", md_safe(d["math"]), ""]
           if flags:
-            lines.append("**Top flags**")
-            for tag, f in flags[:3]:
-              loc = f.get("file", "")
-              if f.get("line"):
-                loc += f":{f['line']}"
-              loc = f" — `{loc}`" if loc else ""
-              lines.append(f"- {tag}: {f['label']}{loc}")
-            extra = len(flags) - 3
-            if extra > 0:
-              lines.append(f"- …and {extra} more")
+              lines.append("**Top flags**")
+              for tag, f in flags[:3]:
+                  loc = md_safe(f.get("file", ""))
+                  if f.get("line"):
+                      loc += f":{int(f['line'])}"
+                  loc = f" — `{loc}`" if loc else ""
+                  lines.append(f"- {tag}: {md_safe(f['label'])}{loc}")
+              extra = len(flags) - 3
+              if extra > 0:
+                  lines.append(f"- …and {extra} more")
           else:
-            lines.append("No undisclosed changes or unhonored claims found.")
+              lines.append("No undisclosed changes or unhonored claims found.")
           lines += ["", f"[View the full receipt →]({WEB}/r/{rid})", "",
                     "<sub>RoboTruth audits whether AI-authored PRs are honest about what they changed. "
                     "No model in the verdict path — every flag cites a file and line.</sub>"]
           body = "\n".join(lines)
 
-          # 3. Post the comment, or update ours if it already exists (no spam on re-runs).
-          gh = httpx.Client(
-            base_url="https://api.github.com",
-            headers={"Authorization": f"Bearer {GH_TOKEN}",
-                     "Accept": "application/vnd.github+json"},
-            timeout=30,
-          )
-          existing = gh.get(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", params={"per_page": 100})
-          existing.raise_for_status()
-          mine = next((c for c in existing.json() if MARKER in (c.get("body") or "")), None)
-          if mine:
-            gh.patch(f"/repos/{REPO}/issues/comments/{mine['id']}", json={"body": body}).raise_for_status()
-            print(f"  updated comment {mine['id']}")
+          # 3. Post/update the comment — best-effort. Fork PRs get a read-only token, so the
+          #    write would 403; skip cleanly instead of crashing the step (the gate still runs).
+          if IS_FORK:
+              print("::notice::Fork PR — read-only token; skipping inline comment (audit still gates).")
           else:
-            gh.post(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", json={"body": body}).raise_for_status()
-            print("  posted new comment")
+              try:
+                  gh = httpx.Client(
+                      base_url="https://api.github.com",
+                      headers={"Authorization": f"Bearer {GH_TOKEN}", "Accept": "application/vnd.github+json"},
+                      timeout=30,
+                  )
+                  existing = gh.get(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", params={"per_page": 100})
+                  existing.raise_for_status()
+                  # Match our marker AND require the author be a bot, so a user-planted
+                  # marker can't hijack the comment we update.
+                  mine = next((c for c in existing.json()
+                               if MARKER in (c.get("body") or "") and (c.get("user") or {}).get("type") == "Bot"), None)
+                  if mine:
+                      gh.patch(f"/repos/{REPO}/issues/comments/{mine['id']}", json={"body": body}).raise_for_status()
+                      print(f"  updated comment {mine['id']}")
+                  else:
+                      gh.post(f"/repos/{REPO}/issues/{PR_NUMBER}/comments", json={"body": body}).raise_for_status()
+                      print("  posted new comment")
+              except Exception as e:
+                  print(f"::warning::Could not post PR comment ({e}); audit still gates below.")
 
-          # 4. Gate the merge: pass on A/B, fail otherwise (now with context in the comment).
+          # 4. The ONLY thing that fails CI: a bad grade. Infra/comment failures above do not.
           sys.exit(0 if grade in ("A", "B") else 1)
           EOF
         env:
@@ -87,3 +114,4 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           GH_TOKEN: ${{ github.token }}
+          IS_FORK: ${{ github.event.pull_request.head.repo.fork }}
