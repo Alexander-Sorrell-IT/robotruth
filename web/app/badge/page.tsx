@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TrackView } from "@/components/TrackView";
 
 export const metadata = {
   title: "Honesty Badge — RoboTruth",
@@ -38,6 +39,7 @@ function Snippet({ children }: { children: string }) {
 export default function BadgePage() {
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
+      <TrackView event="badge_view" />
       <div
         style={{
           fontSize: 12,

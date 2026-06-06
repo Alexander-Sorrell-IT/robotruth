@@ -1,3 +1,5 @@
+import { TrackView } from "@/components/TrackView";
+
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
 interface Stats {
@@ -61,6 +63,7 @@ export default async function InsightsPage() {
         fontFamily: "ui-sans-serif, system-ui",
       }}
     >
+      <TrackView event="insights_view" />
       {/* Header */}
       <div
         style={{

@@ -12,6 +12,11 @@ export const EVENTS = [
   "receipt_shared",
   "image_copied",
   "wall_view",
+  "bots_view",
+  "insights_view",
+  "badge_view",
+  "github_action_view",
+  "repo_scorecard_view",
   "submitted_to_wall",
 ] as const;
 

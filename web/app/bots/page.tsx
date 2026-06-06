@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TrackView } from "@/components/TrackView";
 
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
@@ -49,6 +50,7 @@ export default async function BotsPage() {
         fontFamily: "ui-sans-serif, system-ui",
       }}
     >
+      <TrackView event="bots_view" />
       <div
         style={{
           fontSize: 12,
