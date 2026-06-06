@@ -8,6 +8,7 @@ export const EVENTS = [
   "pr_pasted",
   "example_clicked",
   "receipt_generated", // activation event
+  "receipt_viewed",    // shared receipt opened by any visitor
   "receipt_shared",
   "image_copied",
   "wall_view",
