@@ -15,7 +15,7 @@ RoboTruth is the first product in **The Receipts Protocol** — a deterministic,
 
 ## Why now
 
-In May 2026, a majority of pull requests on active repositories are agent-authored. The reviewer's job has quietly inverted: from *writing code and rubber-stamping reviews* to *reading code they didn't write, written by something that can't be cross-examined*. The PR description — once a courtesy from a colleague — is now an unaudited claim by a non-human author with no reputational skin in the game. Every prior wave of automation produced a receipt layer once the speed of production outran the speed of trust. This is that moment for agentic code.
+In May 2026, a large and fast-growing share of pull requests on active repositories are agent-authored. The reviewer's job has quietly inverted: from *writing code and rubber-stamping reviews* to *reading code they didn't write, written by something that can't be cross-examined*. The PR description — once a courtesy from a colleague — is now an unaudited claim by a non-human author with no reputational skin in the game. Every prior wave of automation produced a receipt layer once the speed of production outran the speed of trust. This is that moment for agentic code.
 
 (Christian Haller's "Intent-Driven Verification" essay, published May 17 2026, names this exact gap from the other direction. RoboTruth is the first product built on the same premise.)
 
@@ -38,22 +38,25 @@ The receipt itself is a screenshot-worthy card: verdict word, letter grade, thre
 
 Beyond the single-PR receipt, the same engine fans out:
 
-- **Wall of Shame** — global feed of caught bot-authored PRs.
+- **Wall of Shame** — a public feed that surfaces caught bot-authored PRs as audits run.
 - **Per-repo scorecard** — `/repo/{owner}/{name}` audits the recent PRs of any public repo on demand and emits an honesty score.
 - **MCP server** — a stdio server (install via `uv pip install -e .` from the repo) that exposes `audit_pr` to Claude Code, Cursor, and Cline. The agent audits the PR it just opened. Self-incrimination, in-workflow.
+- **GitHub Action** — drops into any repo's CI; on every bot PR it posts the verdict *inline as a PR comment* — badge, letter grade, top flags at `file:line`, link to the full receipt — and edits its own comment on re-runs instead of spamming. The audit lands where reviewers already are, the CI gate stops carrying no context, and every commented PR is an organic impression.
 - **Deploy Receipt preview** — [`/deploy/example`](https://robotruth-rdft.vercel.app/deploy/example) shows the same receipt grammar applied to a deployment-agent claim. Same verdict words, same three buckets, same evidence citations at `resource:line`. The scanners are different; the protocol is the same.
 
 ## Who it's for
 
 The staff engineer who is now the bottleneck on agent-authored PRs. In 2026 a tech lead reviews more pull requests than they write, and the ones they don't write are the ones written by something they cannot cross-examine. The reviewer is the customer. The agent is the subject. The receipt is the artifact that closes the loop without expanding the reviewer's day.
 
+A second-order audience falls out of the Wall and the Bot Leaderboard: the agent vendors themselves. Once a bot's honesty carries a public score, its makers have a reputation to defend — and a reason to make their agent disclose more. The reviewer is the customer; the leaderboard is what makes the vendors care.
+
 ## Tools used
 
 - **Engine:** Python — `httpx`, `pydantic`, `unidiff`. No ML libraries.
-- **Surfaces:** Next.js 16 frontend on Vercel · FastAPI on Vercel Python functions · Upstash Redis for durable receipts · Python MCP SDK for the stdio server.
-- **Verification:** 72 pytest tests covering claim extraction, all four scanners, grading logic, and API endpoints. TypeScript strict mode passes on the web surface. Every scanner has regression tests pinning the precision decisions made during the build.
+- **Surfaces:** Next.js 16 frontend on Vercel · FastAPI on Vercel Python functions · Upstash Redis-backed durable receipts (file-backed fallback) · Python MCP SDK for the stdio server.
+- **Verification:** 85 pytest tests — 72 engine (claim extraction, all four scanners, grading logic) plus 13 API-endpoint tests. TypeScript strict mode passes on the web surface. Every scanner has regression tests pinning the precision decisions made during the build.
 - **Build copilot:** Claude Code (Opus 4.7). Every architectural call — engine-vs-API split, deterministic verdict path, claim-editor UI as precision insurance, MCP-as-distribution, Wall attribution policy (bots only / humans anonymized) — was worked through with the assistant in full transparency. This submission was itself adversarially edited by parallel agent reviewers before final draft.
-- **Analytics:** The funnel hypothesis — *receipts spread (high share rate), evidence doesn't always follow them home (low submit rate)* — is the measurement we designed around. Eight named events (`landing_view → pr_pasted → receipt_generated → receipt_shared → wall_submit`) fire to a working sink. Novus is the forwarder: one env var flips it live the moment access lands. The share→submit cliff is the next surface to design for — not more scanners.
+- **Analytics:** The funnel hypothesis — *receipts spread (high share rate), evidence doesn't always follow them home (low submit rate)* — is the measurement we designed around. Eight named events (`landing_view → pr_pasted → receipt_generated → receipt_shared → submitted_to_wall`) fire to a working sink — our own `/api/events` route, which is the analytics that exists today. **Novus** (the hackathon's analytics sponsor) layers on top: the Pendo agent it runs on is embedded in the live site, and our funnel-event forwarding to it is wired behind a single env var (`NEXT_PUBLIC_NOVUS_SITE_ID`) that stays a no-op until it's set — so no Novus traffic has been recorded yet. What Novus *has* already delivered is validation: its own AI independently scanned RoboTruth, reconstructed its personas, product areas, and user flows accurately, and re-derived the engine's top precision risk unprompted — third-party confirmation from the sponsor's own tooling, not a claim of ours. The share→submit cliff is the next surface to design for — not more scanners.
 
 ## What I learned
 
