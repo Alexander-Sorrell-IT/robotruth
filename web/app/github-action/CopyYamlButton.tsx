@@ -8,6 +8,11 @@ export function CopyYamlButton({ yaml }: { yaml: string }) {
     navigator.clipboard
       ?.writeText(yaml)
       .then(() => {
+        if (typeof window !== "undefined" && window.pendo) {
+          window.pendo.track("github_action_yaml_copied", {
+            yamlLength: yaml.length,
+          });
+        }
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       })

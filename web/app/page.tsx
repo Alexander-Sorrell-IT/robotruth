@@ -74,11 +74,32 @@ export default function Home() {
     setBusy(true);
     setErr("");
     try {
-      const { id } = await auditUrl(target);
+      const { id, receipt } = await auditUrl(target);
       track("receipt_generated", { id });
+      if (typeof window !== "undefined" && window.pendo) {
+        window.pendo.track("pr_audited", {
+          receiptId: id,
+          verdict: receipt.verdict,
+          grade: receipt.grade,
+          flagCount: (receipt.undisclosed?.length ?? 0) + (receipt.unhonored?.length ?? 0),
+          undisclosedCount: receipt.undisclosed?.length ?? 0,
+          unhonoredCount: receipt.unhonored?.length ?? 0,
+          deliveredCount: receipt.delivered?.length ?? 0,
+          claimsParsedCount: receipt.parsed_claims?.length ?? 0,
+          repo: receipt.pr?.repo ?? "",
+          prNumber: receipt.pr?.number ?? 0,
+        });
+      }
       router.push("/r/" + id);
     } catch (e) {
-      setErr((e as Error).message);
+      const errorMessage = (e as Error).message;
+      setErr(errorMessage);
+      if (typeof window !== "undefined" && window.pendo) {
+        window.pendo.track("audit_failed", {
+          prUrl: target,
+          errorMessage: errorMessage.substring(0, 200),
+        });
+      }
     } finally {
       setBusy(false);
     }
@@ -145,7 +166,16 @@ export default function Home() {
           e.preventDefault();
           if (url.trim()) {
             track("pr_pasted");
-            run(url.trim());
+            const trimmedUrl = url.trim();
+            const prMatch = trimmedUrl.match(/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)/);
+            if (typeof window !== "undefined" && window.pendo) {
+              window.pendo.track("pr_url_submitted", {
+                prUrl: trimmedUrl,
+                repo: prMatch ? prMatch[1] : "",
+                prNumber: prMatch ? parseInt(prMatch[2], 10) : 0,
+              });
+            }
+            run(trimmedUrl);
           }
         }}
         style={{ display: "flex", gap: 8, marginTop: 28 }}
