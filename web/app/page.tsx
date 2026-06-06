@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auditUrl } from "@/lib/api";
 import { track } from "@/lib/analytics";
+import { enrichPendoVisitor } from "@/components/PendoInitializer";
 
 const LOADING_MESSAGES = [
   "Reading PR…",
@@ -74,8 +75,14 @@ export default function Home() {
     setBusy(true);
     setErr("");
     try {
-      const { id } = await auditUrl(target);
+      const { id, receipt } = await auditUrl(target);
       track("receipt_generated", { id });
+      try {
+        const countKey = "rt_audit_count";
+        const auditCount = (parseInt(localStorage.getItem(countKey) ?? "0", 10) || 0) + 1;
+        localStorage.setItem(countKey, String(auditCount));
+        enrichPendoVisitor({ auditCount, lastVerdict: receipt.verdict, lastGrade: receipt.grade });
+      } catch { /* never block navigation */ }
       router.push("/r/" + id);
     } catch (e) {
       setErr((e as Error).message);
