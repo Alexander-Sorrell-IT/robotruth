@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CopyYamlButton } from "./CopyYamlButton";
+import { TrackView } from "@/components/TrackView";
 
 export const metadata = {
   title: "GitHub Action — RoboTruth",
@@ -42,6 +43,7 @@ jobs:
 export default function GitHubActionPage() {
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px 80px" }}>
+      <TrackView event="github_action_view" />
       {/* Eyebrow */}
       <div
         style={{
