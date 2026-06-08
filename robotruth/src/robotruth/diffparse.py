@@ -23,6 +23,7 @@ class FileChange:
     path: str
     added: list[AddedLine] = field(default_factory=list)
     removed: list[RemovedLine] = field(default_factory=list)
+    context: list[str] = field(default_factory=list)
     is_new: bool = False
     is_removed: bool = False
 
@@ -53,5 +54,7 @@ def parse_diff(diff_text: str) -> Diff:
                     fc.added.append(AddedLine(pf.path, line.target_line_no, content))
                 elif line.is_removed:
                     fc.removed.append(RemovedLine(pf.path, line.source_line_no, content))
+                elif line.is_context:
+                    fc.context.append(content)
         files.append(fc)
     return Diff(files=files)

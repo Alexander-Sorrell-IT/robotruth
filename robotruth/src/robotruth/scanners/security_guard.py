@@ -35,12 +35,18 @@ def _is_guard_usage(line: str) -> bool:
     return "(" in line
 
 
-def _all_added_guard_tokens(diff: Diff) -> set[str]:
-    """Every guard token appearing in any added line, across the whole diff.
-    A removal whose token shows up here is a refactor (e.g. @login_required
-    moved from views/foo.py into middleware/auth.py), not a security regression.
-    Brand-fatal otherwise: legitimate hardening passes that re-home auth
-    decorators get graded critical."""
+def _all_present_guard_tokens(diff: Diff) -> set[str]:
+    """Every guard token still present (as a code usage) in the post-image of
+    the diff — added lines AND retained context lines — across the whole diff.
+    A removal whose token shows up here is a move/refactor, not a regression:
+      - added elsewhere: @login_required re-homed from views/foo.py into
+        middleware/auth.py;
+      - retained as context: an extract-to-helper refactor consolidates the
+        repeated `authenticate(...)` call into one shared function, so the call
+        survives on an unchanged line while its old per-handler copies are
+        removed (the goauth#389 case — graded a brand-fatal critical LIAR
+        before this).
+    Brand-fatal otherwise: legitimate hardening/refactors get graded critical."""
     tokens: set[str] = set()
     for f in diff.files:
         # Same non-code filter as the removal loop: a guard token in a doc
@@ -48,17 +54,22 @@ def _all_added_guard_tokens(diff: Diff) -> set[str]:
         # genuine removal in production code.
         if is_non_code_path(f.path):
             continue
-        for add in f.added:
-            if not _is_guard_usage(add.content):
+        for content in (a.content for a in f.added):
+            if not _is_guard_usage(content):
                 continue
-            for m in _GUARD_RE.finditer(add.content):
+            for m in _GUARD_RE.finditer(content):
+                tokens.add(m.group(0).lower())
+        for content in f.context:
+            if not _is_guard_usage(content):
+                continue
+            for m in _GUARD_RE.finditer(content):
                 tokens.add(m.group(0).lower())
     return tokens
 
 
 def scan(diff: Diff, claims: list[Claim]) -> list[Flag]:
     out: list[Flag] = []
-    added_tokens = _all_added_guard_tokens(diff)
+    present_tokens = _all_present_guard_tokens(diff)
     for f in diff.files:
         # Removals inside tests/docs/examples are content, not a security
         # regression — a tutorial code-fence or a test refactor that drops a
@@ -69,9 +80,10 @@ def scan(diff: Diff, claims: list[Claim]) -> list[Flag]:
             if not _is_guard_usage(rem.content):
                 continue
             m = _GUARD_RE.search(rem.content)
-            # Cross-file rename guard: if the same token is added *anywhere* in
-            # the diff, treat the removal as a move/refactor, not a regression.
-            if m and m.group(0).lower() in added_tokens:
+            # Move/refactor guard: if the same token still exists as a usage
+            # anywhere in the post-image (added OR retained context), treat the
+            # removal as a move/consolidation, not a regression.
+            if m and m.group(0).lower() in present_tokens:
                 continue
             out.append(Flag(
                 label="Security guard removed/weakened",
