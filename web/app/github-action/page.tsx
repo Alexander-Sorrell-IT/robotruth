@@ -1,3 +1,4 @@
+import { Fragment, type ReactNode } from "react";
 import Link from "next/link";
 import { CopyYamlButton } from "./CopyYamlButton";
 import { TrackView } from "@/components/TrackView";
@@ -22,7 +23,7 @@ jobs:
         run: |
           pip install httpx --quiet
           python - <<'EOF'
-          import httpx, os, sys, json
+          import httpx, os, sys
           url = os.environ["PR_URL"]
           r = httpx.post(
             "https://robotruth.vercel.app/api/audit",
@@ -39,6 +40,103 @@ jobs:
           EOF
         env:
           PR_URL: \${{ github.event.pull_request.html_url }}`;
+
+// github-dark-ish palette for the hero snippet.
+const HL = {
+  comment: "#8b949e",
+  string: "#a5d6ff",
+  number: "#79c0ff",
+  keyword: "#ff7b72",
+  key: "#7ee787",
+  punct: "#e2e8f0",
+};
+
+// Python keywords that appear in the heredoc body.
+const PY_KEYWORDS = new Set([
+  "import",
+  "for",
+  "in",
+  "if",
+  "else",
+  "print",
+  "os",
+  "sys",
+  "httpx",
+]);
+
+// Tasteful, text-preserving tokenizer. Ordered: strings first so keywords inside
+// strings are not re-colored; a final catch-all guarantees every character is
+// emitted, so the rendered text always equals the raw YAML string.
+const TOKEN = new RegExp(
+  [
+    "(#[^\\n]*)", // 1: comment
+    "(\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*')", // 2: string
+    "(\\b\\d+\\b)", // 3: number
+    "([A-Za-z_][A-Za-z0-9_-]*)(?=:)", // 4: yaml/mapping key (word before a colon)
+    "([A-Za-z_][A-Za-z0-9_]*)", // 5: identifier (may be a python keyword)
+    "([\\s\\S])", // 6: catch-all (any single char incl. whitespace/punct)
+  ].join("|"),
+  "g",
+);
+
+function highlightLine(line: string, lineKey: number): ReactNode {
+  const nodes: ReactNode[] = [];
+  let m: RegExpExecArray | null;
+  let i = 0;
+  TOKEN.lastIndex = 0;
+  while ((m = TOKEN.exec(line)) !== null) {
+    const key = `${lineKey}-${i++}`;
+    if (m[1] !== undefined) {
+      nodes.push(
+        <span key={key} style={{ color: HL.comment }}>
+          {m[1]}
+        </span>,
+      );
+    } else if (m[2] !== undefined) {
+      nodes.push(
+        <span key={key} style={{ color: HL.string }}>
+          {m[2]}
+        </span>,
+      );
+    } else if (m[3] !== undefined) {
+      nodes.push(
+        <span key={key} style={{ color: HL.number }}>
+          {m[3]}
+        </span>,
+      );
+    } else if (m[4] !== undefined) {
+      nodes.push(
+        <span key={key} style={{ color: HL.key }}>
+          {m[4]}
+        </span>,
+      );
+    } else if (m[5] !== undefined) {
+      if (PY_KEYWORDS.has(m[5])) {
+        nodes.push(
+          <span key={key} style={{ color: HL.keyword }}>
+            {m[5]}
+          </span>,
+        );
+      } else {
+        nodes.push(m[5]);
+      }
+    } else {
+      // catch-all char: whitespace and punctuation, kept verbatim
+      nodes.push(m[6]);
+    }
+  }
+  return nodes;
+}
+
+function highlightYaml(src: string): ReactNode[] {
+  const lines = src.split("\n");
+  return lines.map((line, idx) => (
+    <Fragment key={idx}>
+      {highlightLine(line, idx)}
+      {idx < lines.length - 1 ? "\n" : null}
+    </Fragment>
+  ));
+}
 
 export default function GitHubActionPage() {
   return (
@@ -99,7 +197,7 @@ export default function GitHubActionPage() {
             whiteSpace: "pre",
           }}
         >
-          {YAML}
+          <code style={{ color: HL.punct }}>{highlightYaml(YAML)}</code>
         </pre>
         <div style={{ marginTop: 10, display: "flex", justifyContent: "flex-end" }}>
           <CopyYamlButton yaml={YAML} />

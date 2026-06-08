@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { auditUrl } from "@/lib/api";
 import { track } from "@/lib/analytics";
+import styles from "./page.module.css";
 
 const LOADING_MESSAGES = [
   "Reading PR…",
@@ -241,13 +242,7 @@ export default function Home() {
         <span style={{ fontSize: 13, color: "#9ca3af", display: "block", marginBottom: 10 }}>
           See it in action:
         </span>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 10,
-          }}
-        >
+        <div className={styles.exampleGrid}>
           {RECEIPT_EXAMPLES.map((ex) => {
             const colors = VERDICT_COLORS[ex.verdict] ?? VERDICT_COLORS.HONEST;
             return (
