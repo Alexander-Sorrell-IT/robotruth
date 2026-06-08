@@ -4,4 +4,4 @@ fastapi>=0.115
 uvicorn[standard]>=0.30
 redis>=5
 # The engine is pulled from THIS repo's robotruth/ subdirectory.
-robotruth @ git+https://github.com/Alexander-Sorrell-IT/robotruth.git@main#subdirectory=robotruth
+robotruth @ git+https://github.com/Alexander-Sorrell-IT/robotruth.git@3ec7bcdbf577923a463e7fb0ebef9b61c6d04726#subdirectory=robotruth
