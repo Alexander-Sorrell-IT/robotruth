@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 import secrets
+import urllib.request
 from pathlib import Path
 from typing import Protocol
 
@@ -77,6 +78,59 @@ class FileStore:
         total = sum(verdicts.values())
         return {"total_receipts": total, "wall_count": wall_count,
                 "verdict_distribution": verdicts, "scanners_fired": scanners, "flags_total": flags_total}
+
+
+class UpstashRestStore:
+    """Durable receipt store over the Upstash REST API (HTTP, no persistent TCP
+    connection) — the serverless-friendly path. Each method is one POST of a
+    Redis command as a JSON array; the response is {"result": ...}."""
+
+    def __init__(self, url: str, token: str) -> None:
+        self._url = url.rstrip("/")
+        self._token = token
+
+    def _cmd(self, *args: object) -> object:
+        body = json.dumps([str(a) for a in args]).encode()
+        req = urllib.request.Request(
+            self._url, data=body,
+            headers={"Authorization": f"Bearer {self._token}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read()).get("result")
+
+    def put(self, receipt: dict) -> str:
+        rid = _new_id()
+        self._cmd("SET", f"receipt:{rid}", json.dumps(receipt))
+        return rid
+
+    def get(self, rid: str) -> dict | None:
+        if not _is_valid_id(rid):
+            return None
+        raw = self._cmd("GET", f"receipt:{rid}")
+        return json.loads(raw) if isinstance(raw, str) else None
+
+    def add_wall(self, entry: dict) -> None:
+        self._cmd("LPUSH", "wall", json.dumps(entry))
+        self._cmd("LTRIM", "wall", 0, 49)
+
+    def wall(self, limit: int = 30) -> list[dict]:
+        items = self._cmd("LRANGE", "wall", 0, limit - 1)
+        if not isinstance(items, list):
+            return []
+        return [json.loads(x) for x in items]
+
+    def stats(self) -> dict:
+        wall_entries = self.wall(50)
+        verdicts: dict[str, int] = {}
+        for entry in wall_entries:
+            v = entry.get("verdict", "")
+            if v:
+                verdicts[v] = verdicts.get(v, 0) + 1
+        # DBSIZE counts the 'wall' list key too; subtract it for a receipt count.
+        dbsize = self._cmd("DBSIZE")
+        total = max(0, (int(dbsize) if isinstance(dbsize, (int, str)) else 0) - 1)
+        return {"total_receipts": total, "wall_count": len(wall_entries),
+                "verdict_distribution": verdicts, "scanners_fired": {}, "flags_total": 0}
 
 
 class RedisStore:

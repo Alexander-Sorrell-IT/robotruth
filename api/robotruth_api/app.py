@@ -9,13 +9,23 @@ from pydantic import BaseModel
 from robotruth.types import PRMeta
 from robotruth.engine import audit_diff, audit_pr
 from . import config
-from .store import FileStore, RedisStore, ReceiptStore
+from .store import FileStore, RedisStore, UpstashRestStore, ReceiptStore
 from .pendo import track as pendo_track
 
 app = FastAPI(title="RoboTruth API")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
-STORE: ReceiptStore = RedisStore(config.REDIS_URL) if config.REDIS_URL else FileStore(Path("/tmp/robotruth-receipts"))
+def _make_store() -> ReceiptStore:
+    # Durable stores first; FileStore(/tmp) is the non-durable last resort (does
+    # not survive cold starts or span serverless instances → "Receipt not found").
+    if config.UPSTASH_REST_URL and config.UPSTASH_REST_TOKEN:
+        return UpstashRestStore(config.UPSTASH_REST_URL, config.UPSTASH_REST_TOKEN)
+    if config.REDIS_URL:
+        return RedisStore(config.REDIS_URL)
+    return FileStore(Path("/tmp/robotruth-receipts"))
+
+
+STORE: ReceiptStore = _make_store()
 
 
 class UrlReq(BaseModel):

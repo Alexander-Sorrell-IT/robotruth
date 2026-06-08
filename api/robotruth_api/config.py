@@ -10,4 +10,9 @@ REDIS_URL = (
     or os.environ.get("UPSTASH_REDIS_URL")
     or os.environ.get("STORAGE_REDIS_URL")
 )
+# Upstash REST creds — the serverless-friendly path (HTTP, no persistent TCP
+# connection). Preferred over REDIS_URL when present; what the Vercel/Upstash
+# integration injects by default.
+UPSTASH_REST_URL = os.environ.get("UPSTASH_REDIS_REST_URL") or os.environ.get("KV_REST_API_URL")
+UPSTASH_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN") or os.environ.get("KV_REST_API_TOKEN")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
