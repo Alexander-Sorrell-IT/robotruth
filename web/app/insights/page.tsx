@@ -52,7 +52,8 @@ export const metadata = { title: "Live Insights — RoboTruth" };
 export default async function InsightsPage() {
   const stats = await getStats();
 
-  const empty = !stats || stats.total_receipts === 0;
+  const unreachable = stats === null;
+  const empty = stats !== null && stats.total_receipts === 0;
 
   return (
     <main
@@ -92,7 +93,51 @@ export default async function InsightsPage() {
         no model in the verdict path.
       </p>
 
-      {empty ? (
+      {unreachable ? (
+        /* Error state — fetch failed/unreachable */
+        <div
+          style={{
+            marginTop: 40,
+            padding: "32px 28px",
+            borderRadius: 14,
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+            textAlign: "center",
+          }}
+        >
+          <div
+            style={{ fontSize: 40, marginBottom: 16 }}
+            aria-hidden="true"
+          >
+            ⚠️
+          </div>
+          <div
+            style={{ fontSize: 20, fontWeight: 700, color: "#991b1b", marginBottom: 8 }}
+          >
+            Couldn&apos;t reach the audit service — try again
+          </div>
+          <p style={{ color: "#b91c1c", fontSize: 15, lineHeight: 1.55, margin: 0 }}>
+            These stats didn&apos;t load. That&apos;s a connection problem — not zero receipts.
+            We won&apos;t show numbers we can&apos;t verify.
+          </p>
+          <a
+            href="/insights"
+            style={{
+              display: "inline-block",
+              marginTop: 20,
+              padding: "11px 22px",
+              borderRadius: 10,
+              background: "#111827",
+              color: "#fff",
+              fontSize: 15,
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            Retry →
+          </a>
+        </div>
+      ) : empty ? (
         /* Empty state */
         <div
           style={{

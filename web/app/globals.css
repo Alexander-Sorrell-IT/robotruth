@@ -5,10 +5,11 @@
   --border: #e5e7eb;
   --mono: var(--font-geist-mono), ui-monospace, "Cascadia Code", "SF Mono", Menlo, Monaco, Consolas, monospace;
 
-  /* Verdict colors */
-  --c-honest: #16a34a;
-  --c-mostly: #65a30d;
-  --c-sneaky: #ea580c;
+  /* Verdict colors — AA-compliant (>=4.5:1) as TEXT on white.
+     honest #15803d=5.02:1 · mostly #4d7c0f=4.99:1 · sneaky #c2410c=5.18:1 · liar #dc2626=4.83:1 */
+  --c-honest: #15803d;
+  --c-mostly: #4d7c0f;
+  --c-sneaky: #c2410c;
   --c-liar: #dc2626;
 }
 
@@ -41,4 +42,30 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+  transition: color 0.15s;
+}
+
+/* Interaction states for the inline-styled UI (buttons/links carry no classes,
+   so these global rules give them hover/active feedback without layout shift). */
+button {
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.05s, border-color 0.15s;
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+/* Keyboard focus ring (WCAG 2.4.7). Apple/Linear-style: near-black ring, 2px offset. */
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* The URL input did `outline: none` inline with no replacement; restore a visible
+   focus indicator via a soft halo (renders over the inline border shorthand). */
+input:focus-visible {
+  outline: none;
+  border-color: var(--fg);
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.12);
 }

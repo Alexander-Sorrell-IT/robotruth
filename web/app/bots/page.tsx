@@ -68,7 +68,7 @@ export default async function BotsPage() {
       <p style={{ color: "#4b5563", marginTop: 10, fontSize: 16, lineHeight: 1.55 }}>
         Which bots tell the truth? Ranked by honesty score across audited PRs.
       </p>
-      <p style={{ color: "#9ca3af", marginTop: 6, fontSize: 13 }}>
+      <p style={{ color: "#6b7280", marginTop: 6, fontSize: 13 }}>
         Scores estimated from corpus sample · updates when GITHUB_TOKEN is configured
       </p>
 
@@ -115,7 +115,7 @@ export default async function BotsPage() {
                   style={{
                     fontSize: 13,
                     fontWeight: 700,
-                    color: "#9ca3af",
+                    color: "#6b7280",
                     minWidth: 28,
                     flexShrink: 0,
                   }}
@@ -236,7 +236,7 @@ export default async function BotsPage() {
                   style={{
                     marginTop: 10,
                     fontSize: 12,
-                    color: "#9ca3af",
+                    color: "#6b7280",
                     margin: "10px 0 0",
                     lineHeight: 1.5,
                   }}
@@ -249,7 +249,7 @@ export default async function BotsPage() {
         })}
       </ul>
 
-      <p style={{ marginTop: 36, fontSize: 13, color: "#9ca3af" }}>
+      <p style={{ marginTop: 36, fontSize: 13, color: "#6b7280" }}>
         See the worst catches on the{" "}
         <Link href="/wall" style={{ color: "#6b7280", textDecoration: "underline" }}>
           Wall of Shame

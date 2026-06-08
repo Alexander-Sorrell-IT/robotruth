@@ -14,13 +14,14 @@ interface WallItem {
   author: string | null;
 }
 
-async function getWall(): Promise<WallItem[]> {
+async function getWall(): Promise<WallItem[] | null> {
   try {
     const r = await fetch(`${BASE}/api/wall`, { cache: "no-store" });
-    if (!r.ok) return [];
-    return (await r.json()).items as WallItem[];
+    if (!r.ok) return null;
+    const data = await r.json();
+    return Array.isArray(data.items) ? (data.items as WallItem[]) : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -57,7 +58,53 @@ export default async function WallPage() {
         below is a real catch — verdict, grade, file:line evidence, no AI guessing.
       </p>
 
-      {items.length === 0 ? (
+      {items === null ? (
+        <div
+          style={{
+            marginTop: 32,
+            padding: "24px 22px",
+            borderRadius: 14,
+            background: "#fef2f2",
+            border: "1px solid #fecaca",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              color: "#dc2626",
+              marginBottom: 6,
+            }}
+          >
+            Service unavailable
+          </div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: "#991b1b", lineHeight: 1.3 }}>
+            Couldn&apos;t reach the audit service — try again.
+          </div>
+          <p style={{ marginTop: 10, fontSize: 14, color: "#b91c1c", lineHeight: 1.55 }}>
+            The receipts feed didn&apos;t respond. This is a connection problem, not an empty
+            wall — we won&apos;t pretend there are no catches when we simply can&apos;t see them.
+          </p>
+          <div style={{ marginTop: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <a
+              href="/wall"
+              style={{
+                padding: "9px 16px",
+                borderRadius: 8,
+                background: "#111827",
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 500,
+                textDecoration: "none",
+              }}
+            >
+              Retry →
+            </a>
+          </div>
+        </div>
+      ) : items.length === 0 ? (
         <div
           style={{
             marginTop: 32,

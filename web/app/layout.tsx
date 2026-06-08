@@ -4,6 +4,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { PendoInitializer } from "@/components/PendoInitializer";
 import "./globals.css";
+import styles from "./layout.module.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,27 +42,30 @@ export default function RootLayout({
       </head>
       <body>
         <PendoInitializer />
-        <header style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 50,
-          background: "rgba(250,250,250,0.92)",
-          backdropFilter: "blur(8px)",
-          borderBottom: "1px solid #e5e7eb",
-          padding: "0 24px",
-          height: 52,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}>
-          <Link href="/" style={{ fontWeight: 700, fontSize: 16, letterSpacing: "-0.01em" }}>
-            🤖 RoboTruth
+        <header className={styles.header}>
+          <Link href="/" className={styles.wordmark}>
+            <svg
+              className={styles.glyph}
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 3.5v17l2-1.2 2 1.2 2-1.2 2 1.2 2-1.2 2 1.2v-17l-2 1.2-2-1.2-2 1.2-2-1.2-2 1.2-2-1.2z" />
+              <path d="M8.5 11.5l2.2 2.2 4.3-4.3" />
+            </svg>
+            RoboTruth
           </Link>
-          <nav style={{ display: "flex", gap: 20, alignItems: "center" }}>
-            <Link href="/wall" style={{ fontSize: 14, color: "#6b7280" }}>Wall of Shame</Link>
-            <Link href="/bots" style={{ fontSize: 14, color: "#6b7280" }}>Bot Leaderboard</Link>
-            <Link href="/insights" style={{ fontSize: 14, color: "#6b7280" }}>Insights</Link>
-            <Link href="/badge" style={{ fontSize: 14, color: "#6b7280" }}>Badge</Link>
+          <nav className={styles.nav}>
+            <Link href="/wall" className={styles.navLink}>Wall of Shame</Link>
+            <Link href="/bots" className={styles.navLink}>Bot Leaderboard</Link>
+            <Link href="/insights" className={styles.navLink}>Insights</Link>
+            <Link href="/badge" className={styles.navLink}>Badge</Link>
           </nav>
         </header>
 
