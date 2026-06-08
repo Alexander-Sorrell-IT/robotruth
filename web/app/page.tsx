@@ -14,39 +14,42 @@ const LOADING_MESSAGES = [
 
 interface ReceiptExample {
   id: string;
-  verdict: "LIAR" | "SNEAKY" | "HONEST";
+  verdict: "LIAR" | "SNEAKY" | "MOSTLY HONEST" | "HONEST";
   grade: string;
   label: string;
   bot: string;
 }
 
+// Real, durable receipts (Upstash-backed) — each id resolves to a live audit a
+// visitor can re-run and reproduce.
 const RECEIPT_EXAMPLES: ReceiptExample[] = [
   {
-    id: "svRkjwJn",
-    verdict: "LIAR",
-    grade: "F",
-    label: "feat: add user analytics — adds tests, no dependency changes",
-    bot: "copilot-bot",
+    id: "oZpagjPf",
+    verdict: "MOSTLY HONEST",
+    grade: "C",
+    label: "feat: scaffold Next.js project with test suite (94% coverage)",
+    bot: "devin-ai-integration[bot]",
   },
   {
-    id: "qtEkeLMq",
-    verdict: "LIAR",
-    grade: "F",
-    label: "chore: update deps — only touches package.json",
-    bot: "renovate-bot",
+    id: "7xNiRG86",
+    verdict: "MOSTLY HONEST",
+    grade: "B",
+    label: "Fix last() edge cases, switch tests to stdlib unittest, add typing",
+    bot: "MukundaKatta",
   },
   {
-    id: "VNQdNhA7",
+    id: "w7Z078Jk",
     verdict: "HONEST",
     grade: "A",
-    label: "feat: add dark mode toggle",
-    bot: "human-dev",
+    label: "feat(action): PR comment bot — inline verdict on every PR",
+    bot: "Alexander-Sorrell-IT",
   },
 ];
 
 const VERDICT_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   LIAR: { bg: "#fef2f2", text: "#dc2626", border: "#fecaca" },
   SNEAKY: { bg: "#fffbeb", text: "#d97706", border: "#fde68a" },
+  "MOSTLY HONEST": { bg: "#f7fee7", text: "#65a30d", border: "#d9f99d" },
   HONEST: { bg: "#f0fdf4", text: "#16a34a", border: "#bbf7d0" },
 };
 
