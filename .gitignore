@@ -22,3 +22,6 @@ node_modules/
 
 # Local scratch: browser profiles (live session cookies), captures, logs
 .scratch/
+
+# Demo voice-over: generated audio build artifacts (keep text scripts out of history)
+voiceover/

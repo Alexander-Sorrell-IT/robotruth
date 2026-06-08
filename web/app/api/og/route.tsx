@@ -70,7 +70,7 @@ export async function GET(req: Request) {
             letterSpacing: 1,
           }}
         >
-          <div>🤖 ROBOTRUTH · INTENT RECEIPT</div>
+          <div>ROBOTRUTH · INTENT RECEIPT</div>
           <div style={{ fontWeight: 700 }}>THE RECEIPTS PROTOCOL</div>
         </div>
 
