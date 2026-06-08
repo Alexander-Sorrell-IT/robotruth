@@ -34,7 +34,6 @@ export default async function WallPage() {
         maxWidth: 720,
         margin: "0 auto",
         padding: "48px 16px",
-        fontFamily: "ui-sans-serif, system-ui",
       }}
     >
       <TrackView event="wall_view" />

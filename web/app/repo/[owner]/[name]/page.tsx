@@ -22,7 +22,7 @@ export default async function RepoPage({ params }: { params: Promise<{ owner: st
   const data = await getScore(owner, name);
   if (!data) return <main style={{ padding: 40 }}>Couldn&apos;t score {owner}/{name}.</main>;
   return (
-    <main style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px", fontFamily: "ui-sans-serif, system-ui" }}>
+    <main style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
       <TrackView event="repo_scorecard_view" props={{ owner, name }} />
       <h1 style={{ fontSize: 28, fontWeight: 800 }}>{data.repo}</h1>
       <p style={{ fontSize: 18 }}>AI-honesty score: <strong>{data.score !== null ? `${data.score}%` : "unverified"}</strong> <span style={{ color: "#6b7280" }}>(recent PRs graded A/B)</span></p>
