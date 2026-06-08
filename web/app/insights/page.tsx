@@ -60,7 +60,6 @@ export default async function InsightsPage() {
         maxWidth: 680,
         margin: "0 auto",
         padding: "48px 24px 80px",
-        fontFamily: "ui-sans-serif, system-ui",
       }}
     >
       <TrackView event="insights_view" />

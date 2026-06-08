@@ -47,7 +47,6 @@ export default async function BotsPage() {
         maxWidth: 720,
         margin: "0 auto",
         padding: "48px 16px",
-        fontFamily: "ui-sans-serif, system-ui",
       }}
     >
       <TrackView event="bots_view" />
