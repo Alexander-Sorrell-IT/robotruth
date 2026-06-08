@@ -105,6 +105,25 @@ def test_import_only_addition_does_not_mask_removal():
     assert len(flags) == 1 and flags[0].severity == "critical"
 
 
+def test_extract_to_helper_consolidation_not_flagged():
+    # goauth#389: an extract-to-helper refactor consolidates the repeated
+    # `authenticate(...)` call into one shared helper. The per-handler copies
+    # are removed (-) while the consolidated call survives on an unchanged
+    # context line inside the helper. Auth is fully preserved -> must NOT flag
+    # critical. (Graded a brand-fatal LIAR/F before context lines were checked.)
+    d = parse_diff(
+        "diff --git a/auth/middleware.go b/auth/middleware.go\n"
+        "--- a/auth/middleware.go\n+++ b/auth/middleware.go\n"
+        "@@ -1,4 +1,4 @@\n"
+        " func requireCheck() {\n"
+        " \tuserID, ok := authenticate(w, r, jwtMgr, apiKeys, cfg)\n"
+        " }\n"
+        "-\tuserID, ok := authenticate(w, r, jwtMgr, apiKeys, cfg)\n"
+        "+\treturn requireCheck()\n"
+    )
+    assert scan(d, []) == []
+
+
 def test_cross_file_removal_still_flagged():
     # If the same token is NOT added back anywhere in the diff, the removal
     # is still a regression. Regression guard: don't let the cross-file
