@@ -418,7 +418,7 @@ wheels = [
 [[package]]
 name = "robotruth"
 version = "0.1.0"
-source = { git = "https://github.com/Alexander-Sorrell-IT/robotruth.git?subdirectory=robotruth&branch=main#c7663d9cb585d97c48f9a2646b9e1f2078ea84be" }
+source = { git = "https://github.com/Alexander-Sorrell-IT/robotruth.git?subdirectory=robotruth&rev=3ec7bcdbf577923a463e7fb0ebef9b61c6d04726#3ec7bcdbf577923a463e7fb0ebef9b61c6d04726" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
@@ -448,7 +448,7 @@ requires-dist = [
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "redis", specifier = ">=5" },
-    { name = "robotruth", git = "https://github.com/Alexander-Sorrell-IT/robotruth.git?subdirectory=robotruth&branch=main" },
+    { name = "robotruth", git = "https://github.com/Alexander-Sorrell-IT/robotruth.git?subdirectory=robotruth&rev=3ec7bcdbf577923a463e7fb0ebef9b61c6d04726" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]
 provides-extras = ["dev"]
