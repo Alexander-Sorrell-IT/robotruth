@@ -23,8 +23,9 @@ https://robotruth-rdft.vercel.app
 https://github.com/Alexander-Sorrell-IT/robotruth
 
 ## [REQUIRED] Demo video URL
-PASTE the YouTube/Vimeo/Youku link here AFTER uploading `submission_assets/robotruth_demo_v2.mp4`.
-(Do NOT use Loom — not an accepted host. v2 is the ffprobe-verified 2:36 cut, under the 3-min cap.)
+https://youtu.be/ccVobX4Qj4c
+(Uploaded to YouTube as Unlisted on 2026-06-09 — the 2:36 cut, narrated in the cloned voice.
+Switch to Public once everything's verified. NOT Loom.)
 
 ---
 
