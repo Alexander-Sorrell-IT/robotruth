@@ -1,71 +1,57 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Deploy Receipt (preview) — RoboTruth",
+  title: "Deploy Receipt — RoboTruth",
   description:
-    "The Receipts Protocol grammar applied to a deployment-agent claim. Same verdict words, same three buckets, same file:line citations. Preview of the next surface.",
+    "The Receipts Protocol grammar applied to a deployment-agent claim — computed by the same deterministic engine as the PR receipt. Same verdict words, same three buckets, same resource:line citations. No model in the verdict path.",
 };
 
-const VERDICT_COLOR = "#ea580c"; // SNEAKY orange
-const VERDICT_BG = "#fff7ed";
+const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
-interface DeployFlag {
+// Render this on every request so the receipt is genuinely computed by the engine,
+// not baked at build time.
+export const dynamic = "force-dynamic";
+
+interface Flag {
   label: string;
-  resource: string;
-  line?: string;
+  file: string;
+  line: number | null;
   severity: "critical" | "moderate" | "minor";
   evidence: string;
 }
+interface DeployReceipt {
+  deploy: { service: string; release: string; title: string; claim: string };
+  verdict: "HONEST" | "MOSTLY HONEST" | "SNEAKY" | "LIAR";
+  grade: string;
+  delivered: Flag[];
+  undisclosed: Flag[];
+  unhonored: Flag[];
+  scanners: string[];
+  math: string;
+}
 
-const UNDISCLOSED: DeployFlag[] = [
-  {
-    label: "Promoted to production (claimed: staging only)",
-    resource: "argocd/app-prod.yaml",
-    line: "syncPolicy.automated:true",
-    severity: "critical",
-    evidence: "+ syncPolicy:\n+   automated:\n+     prune: true",
-  },
-  {
-    label: "New env var introduced without feature flag",
-    resource: "k8s/deployment.yaml",
-    line: "spec.template.spec.containers[0].env[+12]",
-    severity: "moderate",
-    evidence: "+ - name: DATABASE_POOL_SIZE\n+   value: \"32\"",
-  },
-  {
-    label: "/health probe interval narrowed 30s → 5s",
-    resource: "k8s/deployment.yaml",
-    line: "livenessProbe.periodSeconds",
-    severity: "moderate",
-    evidence: "- periodSeconds: 30\n+ periodSeconds: 5",
-  },
-];
+const VERDICT_COLOR: Record<string, string> = {
+  HONEST: "#16a34a",
+  "MOSTLY HONEST": "#65a30d",
+  SNEAKY: "#ea580c",
+  LIAR: "#dc2626",
+};
+const VERDICT_BG: Record<string, string> = {
+  HONEST: "#f0fdf4",
+  "MOSTLY HONEST": "#f7fee7",
+  SNEAKY: "#fff7ed",
+  LIAR: "#fef2f2",
+};
 
-const UNHONORED: DeployFlag[] = [
-  {
-    label: "Claimed: 'no breaking changes' — narrowed probe interval breaks clients with cached config",
-    resource: "k8s/deployment.yaml",
-    severity: "moderate",
-    evidence: "claim text: \"no breaking changes\"",
-  },
-];
-
-const DELIVERED: DeployFlag[] = [
-  {
-    label: "Image tag bumped v2.3.0 → v2.3.1",
-    resource: "k8s/deployment.yaml",
-    line: "spec.template.spec.containers[0].image",
-    severity: "minor",
-    evidence: "+ image: app:v2.3.1",
-  },
-];
-
-const SCANNERS = [
-  "manifest_drift",
-  "env_var_surface",
-  "probe_changes",
-  "rollout_target",
-];
+async function getDeployExample(): Promise<DeployReceipt | null> {
+  try {
+    const r = await fetch(`${BASE}/api/deploy/example`, { cache: "no-store" });
+    if (!r.ok) return null;
+    return (await r.json()) as DeployReceipt;
+  } catch {
+    return null;
+  }
+}
 
 function Bucket({
   title,
@@ -76,7 +62,7 @@ function Bucket({
   title: string;
   icon: string;
   color: string;
-  flags: DeployFlag[];
+  flags: Flag[];
 }) {
   if (flags.length === 0) return null;
   return (
@@ -113,25 +99,27 @@ function Bucket({
                   flexShrink: 0,
                 }}
               >
-                {f.resource}
-                {f.line ? `:${f.line}` : ""}
+                {f.file}
+                {f.line != null ? `:${f.line}` : ""}
               </span>
             </div>
-            <pre
-              style={{
-                margin: "6px 0 0",
-                padding: "8px 10px",
-                background: "#f9fafb",
-                fontSize: 11,
-                color: "#374151",
-                borderRadius: 6,
-                fontFamily: "var(--mono)",
-                whiteSpace: "pre-wrap",
-                overflow: "hidden",
-              }}
-            >
-              {f.evidence}
-            </pre>
+            {f.evidence ? (
+              <pre
+                style={{
+                  margin: "6px 0 0",
+                  padding: "8px 10px",
+                  background: "#f9fafb",
+                  fontSize: 11,
+                  color: "#374151",
+                  borderRadius: 6,
+                  fontFamily: "var(--mono)",
+                  whiteSpace: "pre-wrap",
+                  overflow: "hidden",
+                }}
+              >
+                {f.evidence}
+              </pre>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -139,32 +127,48 @@ function Bucket({
   );
 }
 
-export default function DeployExamplePage() {
-  const flagCount = UNDISCLOSED.length + UNHONORED.length;
+export default async function DeployExamplePage() {
+  const receipt = await getDeployExample();
+
+  if (!receipt) {
+    return (
+      <main style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800 }}>Deploy Receipt</h1>
+        <p style={{ color: "#6b7280", marginTop: 12 }}>
+          Live computation is temporarily unavailable. The Deploy Receipt is computed by the
+          RoboTruth engine — try again in a moment.
+        </p>
+        <Link href="/" style={{ color: "#2563eb" }}>← Back to the PR receipt</Link>
+      </main>
+    );
+  }
+
+  const color = VERDICT_COLOR[receipt.verdict] ?? "#ea580c";
+  const bg = VERDICT_BG[receipt.verdict] ?? "#fff7ed";
+  const flagCount = receipt.undisclosed.length + receipt.unhonored.length;
+
   return (
     <main style={{ maxWidth: 720, margin: "0 auto", padding: "48px 16px" }}>
-      {/* Preview banner */}
+      {/* Honest note: this is a real computation of an example deployment */}
       <div
         style={{
           marginBottom: 24,
           padding: "12px 16px",
-          background: "#fef3c7",
-          border: "1px solid #fcd34d",
+          background: "#f0f9ff",
+          border: "1px solid #bae6fd",
           borderRadius: 10,
           fontSize: 13,
-          color: "#78350f",
+          color: "#075985",
           lineHeight: 1.5,
         }}
       >
-        <strong>Preview · the next surface.</strong> This is the receipt grammar applied to a
-        deploy-agent claim, with mocked data. Same verdict words. Same three buckets. Same{" "}
-        <code style={{ background: "#fde68a", padding: "1px 5px", borderRadius: 4 }}>
-          resource:line
-        </code>{" "}
-        evidence. <Link href="/" style={{ color: "#92400e", textDecoration: "underline" }}>
-          The PR receipt
-        </Link>{" "}
-        is the same primitive aimed at a different surface.
+        <strong>The second surface — computed, not authored.</strong> This receipt is produced
+        by the RoboTruth engine from an example deployment manifest diff, using the{" "}
+        <em>same pure grader</em> as the{" "}
+        <Link href="/" style={{ color: "#0369a1", textDecoration: "underline" }}>
+          PR receipt
+        </Link>
+        . Different scanners, identical grammar. No model in the verdict path.
       </div>
 
       {/* Category header */}
@@ -210,7 +214,8 @@ export default function DeployExamplePage() {
               color: "#9ca3af",
             }}
           >
-            RoboTruth · DEPLOY RECEIPT &nbsp;·&nbsp; payments-api · release v2.3.1
+            RoboTruth · DEPLOY RECEIPT &nbsp;·&nbsp; {receipt.deploy.service} · release{" "}
+            {receipt.deploy.release}
           </div>
           <div
             style={{
@@ -221,7 +226,7 @@ export default function DeployExamplePage() {
               lineHeight: 1.35,
             }}
           >
-            Roll out v2.3.1 — bugfix release, no breaking changes, staging only
+            {receipt.deploy.title}
           </div>
         </div>
 
@@ -229,7 +234,7 @@ export default function DeployExamplePage() {
         <div
           style={{
             padding: "20px 24px",
-            background: VERDICT_BG,
+            background: bg,
             borderBottom: "1px solid #f3f4f6",
             display: "flex",
             alignItems: "center",
@@ -242,14 +247,14 @@ export default function DeployExamplePage() {
               alignItems: "center",
               padding: "6px 16px",
               borderRadius: 999,
-              background: `${VERDICT_COLOR}18`,
-              color: VERDICT_COLOR,
+              background: `${color}18`,
+              color,
               fontSize: 20,
               fontWeight: 800,
               letterSpacing: "-0.01em",
             }}
           >
-            SNEAKY
+            {receipt.verdict}
           </span>
           <span
             style={{
@@ -259,13 +264,13 @@ export default function DeployExamplePage() {
               width: 48,
               height: 48,
               borderRadius: 10,
-              background: `${VERDICT_COLOR}18`,
-              color: VERDICT_COLOR,
+              background: `${color}18`,
+              color,
               fontSize: 28,
               fontWeight: 800,
             }}
           >
-            D
+            {receipt.grade}
           </span>
         </div>
 
@@ -293,26 +298,26 @@ export default function DeployExamplePage() {
               marginBottom: 6,
             }}
           >
-            <span style={{ color: "#ea580c" }}>●</span> Audit ran · {SCANNERS.length} scanners ·{" "}
+            <span style={{ color }}>●</span> Audit ran · {receipt.scanners.length} scanners ·{" "}
             {flagCount} flag{flagCount === 1 ? "" : "s"} raised
           </div>
           <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "#9ca3af" }}>
-            {SCANNERS.join(" · ")}
+            {receipt.scanners.join(" · ")}
           </div>
         </div>
 
         {/* Buckets */}
         <div style={{ padding: "8px 24px 4px" }}>
-          <Bucket title="Did, but didn't mention" icon="⚠️" color="#ea580c" flags={UNDISCLOSED} />
-          <Bucket title="Claimed, but contradicted by deploy" icon="❌" color="#dc2626" flags={UNHONORED} />
-          <Bucket title="Claimed & delivered" icon="✅" color="#16a34a" flags={DELIVERED} />
+          <Bucket title="Did, but didn't mention" icon="⚠️" color="#ea580c" flags={receipt.undisclosed} />
+          <Bucket title="Claimed, but contradicted by deploy" icon="❌" color="#dc2626" flags={receipt.unhonored} />
+          <Bucket title="Claimed & delivered" icon="✅" color="#16a34a" flags={receipt.delivered} />
         </div>
 
         {/* Footer */}
         <div style={{ padding: "16px 24px", borderTop: "1px solid #f3f4f6", marginTop: 8 }}>
-          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 12 }}>
-            Deterministic · every flag cites resource:path · no model in the verdict path &nbsp;·&nbsp;
-            D: 1 critical + 2 moderate undisclosed, 1 unhonored; score=5
+          <div style={{ fontSize: 11, color: "#9ca3af", marginBottom: 0 }}>
+            Deterministic · every flag cites resource:line · no model in the verdict path &nbsp;·&nbsp;
+            {receipt.math}
           </div>
         </div>
       </div>
@@ -340,15 +345,15 @@ export default function DeployExamplePage() {
           Why this matters
         </div>
         <p style={{ margin: 0, fontSize: 14, color: "#374151", lineHeight: 1.65 }}>
-          A deploy receipt is the same primitive as a PR receipt: read the agent's claim, read
+          A deploy receipt is the same primitive as a PR receipt: read the agent&apos;s claim, read
           the actual change, cite every divergence. The scanners are different (manifest drift,
           probe changes, rollout target, env var surface — instead of dangerous primitives,
-          dependencies, scope drift, security guard) but the grammar is identical. One verdict
-          word. One letter grade. Three buckets. Evidence at <code>resource:line</code>. No
-          model in the verdict path.
+          dependencies, scope drift, security guard) but the grader is <em>the same pure
+          function</em>. One verdict word. One letter grade. Three buckets. Evidence at{" "}
+          <code>resource:line</code>. No model in the verdict path.
         </p>
         <p style={{ margin: "12px 0 0", fontSize: 14, color: "#374151", lineHeight: 1.65 }}>
-          PRs were the first surface because the diff is the ground truth and it's public.
+          PRs were the first surface because the diff is the ground truth and it&apos;s public.
           Deployments are next because the cost of being lied to is the highest — the agent
           claimed staging, it shipped production, the incident already happened.
         </p>
