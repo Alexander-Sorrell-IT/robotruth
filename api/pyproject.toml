@@ -20,4 +20,4 @@ entrypoint = "robotruth_api.app:app"
 # repo's robotruth/ subdirectory. pip ignores this block, so local dev (which
 # installs the engine editable from ../robotruth) is unaffected.
 [tool.uv.sources]
-robotruth = { git = "https://github.com/Alexander-Sorrell-IT/robotruth.git", subdirectory = "robotruth", rev = "3ec7bcdbf577923a463e7fb0ebef9b61c6d04726" }
+robotruth = { git = "https://github.com/Alexander-Sorrell-IT/robotruth.git", subdirectory = "robotruth", rev = "a95fcdd8c3d13ba565a246edd33c832352a757bf" }
