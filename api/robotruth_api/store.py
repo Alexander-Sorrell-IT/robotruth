@@ -120,17 +120,37 @@ class UpstashRestStore:
         return [json.loads(x) for x in items]
 
     def stats(self) -> dict:
-        wall_entries = self.wall(50)
+        # Iterate every receipt so the numbers are ACCURATE and self-consistent —
+        # verdict distribution across ALL receipts (not just the wall) and a real
+        # flag total. SCAN, then GET each. Fine at hackathon volume.
+        keys: list[str] = []
+        cursor = "0"
+        for _ in range(50):  # bound the loop; plenty for any realistic key count
+            res = self._cmd("SCAN", cursor, "MATCH", "receipt:*", "COUNT", 300)
+            if not isinstance(res, list) or len(res) != 2:
+                break
+            cursor = str(res[0])
+            batch = res[1]
+            if isinstance(batch, list):
+                keys.extend(str(k) for k in batch)
+            if cursor == "0":
+                break
         verdicts: dict[str, int] = {}
-        for entry in wall_entries:
-            v = entry.get("verdict", "")
+        flags_total = 0
+        for k in keys:
+            raw = self._cmd("GET", k)
+            if not isinstance(raw, str):
+                continue
+            try:
+                r = json.loads(raw)
+            except Exception:
+                continue
+            v = r.get("verdict", "")
             if v:
                 verdicts[v] = verdicts.get(v, 0) + 1
-        # DBSIZE counts the 'wall' list key too; subtract it for a receipt count.
-        dbsize = self._cmd("DBSIZE")
-        total = max(0, (int(dbsize) if isinstance(dbsize, (int, str)) else 0) - 1)
-        return {"total_receipts": total, "wall_count": len(wall_entries),
-                "verdict_distribution": verdicts, "scanners_fired": {}, "flags_total": 0}
+            flags_total += len(r.get("undisclosed", [])) + len(r.get("unhonored", []))
+        return {"total_receipts": len(keys), "wall_count": len(self.wall(50)),
+                "verdict_distribution": verdicts, "scanners_fired": {}, "flags_total": flags_total}
 
 
 class RedisStore:

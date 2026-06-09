@@ -40,13 +40,6 @@ const VERDICT_STYLE: Record<
   LIAR: { bg: "#fef2f2", text: "#dc2626", border: "#fecaca", label: "LIAR" },
 };
 
-const SCANNER_LABELS: Record<string, string> = {
-  dangerous_primitives: "Dangerous Primitives",
-  dependencies: "Dependencies",
-  scope_drift: "Scope Drift",
-  security_guard: "Security Guard",
-};
-
 export const metadata = { title: "Live Insights — RoboTruth" };
 
 export default async function InsightsPage() {
@@ -276,7 +269,7 @@ export default async function InsightsPage() {
             </div>
           </div>
 
-          {/* Flags by scanner */}
+          {/* Flags raised — accurate total across all receipts */}
           <div style={{ marginTop: 32 }}>
             <div
               style={{
@@ -288,70 +281,25 @@ export default async function InsightsPage() {
                 marginBottom: 14,
               }}
             >
-              Flags by scanner
+              Flags raised
             </div>
             <div
               style={{
-                border: "1px solid #e5e7eb",
+                padding: "20px 22px",
                 borderRadius: 12,
-                overflow: "hidden",
+                border: "1px solid #e5e7eb",
                 background: "#fff",
+                display: "flex",
+                alignItems: "baseline",
+                gap: 12,
               }}
             >
-              {(() => {
-                const scanners = stats!.scanners_fired;
-                const entries = Object.entries(SCANNER_LABELS)
-                  .map(([key, label]) => ({
-                    key,
-                    label,
-                    count: (scanners as Record<string, number | undefined>)[key] ?? 0,
-                  }))
-                  .sort((a, b) => b.count - a.count);
-
-                const max = Math.max(...entries.map((e) => e.count), 1);
-
-                return entries.map((entry, i) => (
-                  <div
-                    key={entry.key}
-                    style={{
-                      padding: "14px 18px",
-                      borderTop: i === 0 ? "none" : "1px solid #f3f4f6",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 14,
-                    }}
-                  >
-                    <div style={{ width: 150, fontSize: 14, color: "#374151", fontWeight: 500, flexShrink: 0 }}>
-                      {entry.label}
-                    </div>
-                    <div style={{ flex: 1, background: "#f3f4f6", borderRadius: 4, height: 8, overflow: "hidden" }}>
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${(entry.count / max) * 100}%`,
-                          background: entry.count > 0 ? "#f59e0b" : "transparent",
-                          borderRadius: 4,
-                          transition: "width 0.3s ease",
-                        }}
-                      />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: entry.count > 0 ? "#111827" : "#d1d5db",
-                        minWidth: 28,
-                        textAlign: "right",
-                      }}
-                    >
-                      {entry.count.toLocaleString()}
-                    </div>
-                  </div>
-                ));
-              })()}
-            </div>
-            <div style={{ marginTop: 8, fontSize: 13, color: "#9ca3af" }}>
-              Total flags raised: <strong style={{ color: "#374151" }}>{stats!.flags_total.toLocaleString()}</strong>
+              <span style={{ fontSize: 32, fontWeight: 800, color: "#111827", letterSpacing: "-0.02em" }}>
+                {stats!.flags_total.toLocaleString()}
+              </span>
+              <span style={{ fontSize: 15, color: "#6b7280" }}>
+                undisclosed or unhonored changes caught across {stats!.total_receipts.toLocaleString()} audited PRs
+              </span>
             </div>
           </div>
 
@@ -366,8 +314,8 @@ export default async function InsightsPage() {
               paddingTop: 20,
             }}
           >
-            Data from receipts stored in this session. Novus integration pending for full
-            funnel analytics.
+            Computed live from every durable receipt. Deterministic — no model in the
+            verdict path.
           </p>
         </>
       )}
