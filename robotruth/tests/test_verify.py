@@ -32,3 +32,19 @@ def test_unhonored_when_no_deps_claimed_but_go_mod_changed():
 def test_unhonored_when_no_deps_claimed_but_cargo_changed():
     delivered, unhonored = verify_claims(_diff(["Cargo.toml"]), [Claim(kind="no_deps")])
     assert delivered == [] and len(unhonored) == 1
+
+
+def test_lockfile_only_churn_is_not_a_broken_no_deps_claim():
+    # A "no new dependencies" claim with ONLY a lockfile churning (no manifest change) is
+    # NOT a lie — lockfiles re-resolve automatically. Must be honored, not unhonored.
+    # (Repro of the pathfinder-ai#390 false positive.)
+    for lock in ["package-lock.json", "yarn.lock", "poetry.lock", "go.sum", "Cargo.lock"]:
+        delivered, unhonored = verify_claims(_diff([lock]), [Claim(kind="no_deps")])
+        assert unhonored == [], f"{lock}-only churn falsely flagged as a broken no_deps claim"
+        assert len(delivered) == 1
+
+
+def test_manifest_change_still_flagged_even_with_lockfile():
+    # If a manifest DID change (alongside its lockfile), the no_deps claim is genuinely broken.
+    delivered, unhonored = verify_claims(_diff(["package.json", "package-lock.json"]), [Claim(kind="no_deps")])
+    assert delivered == [] and len(unhonored) == 1
