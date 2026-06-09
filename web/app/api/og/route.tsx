@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 const BASE = process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000";
 
 const COLOR: Record<string, string> = {
@@ -123,13 +123,13 @@ export async function GET(req: Request) {
 
         {/* Flag breakdown — the story the verdict tells */}
         <div style={{ display: "flex", gap: 28, marginTop: 26, fontSize: 24 }}>
-          <div style={{ color: und > 0 ? "#ea580c" : "#9ca3af" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 7, color: und > 0 ? "#ea580c" : "#9ca3af" }}>
             <span style={{ fontWeight: 700, fontSize: 30 }}>{und}</span> undisclosed
           </div>
-          <div style={{ color: unh > 0 ? "#dc2626" : "#9ca3af" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 7, color: unh > 0 ? "#dc2626" : "#9ca3af" }}>
             <span style={{ fontWeight: 700, fontSize: 30 }}>{unh}</span> unhonored
           </div>
-          <div style={{ color: del > 0 ? "#16a34a" : "#9ca3af" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 7, color: del > 0 ? "#16a34a" : "#9ca3af" }}>
             <span style={{ fontWeight: 700, fontSize: 30 }}>{del}</span> delivered
           </div>
         </div>
@@ -137,6 +137,9 @@ export async function GET(req: Request) {
         {/* Footer constraint — the brand */}
         <div
           style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: 8,
             marginTop: "auto",
             fontSize: 22,
             color: "#4b5563",
@@ -144,7 +147,8 @@ export async function GET(req: Request) {
             borderTop: "1px solid #e5e7eb",
           }}
         >
-          Deterministic · every flag cites file:line · <span style={{ fontWeight: 700, color: "#111827" }}>no model in the verdict path.</span>
+          <span>Deterministic · every flag cites file:line ·</span>
+          <span style={{ fontWeight: 700, color: "#111827" }}>no model in the verdict path.</span>
         </div>
       </div>
     ),
