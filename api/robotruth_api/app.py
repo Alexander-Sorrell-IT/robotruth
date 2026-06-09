@@ -8,6 +8,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from robotruth.types import PRMeta
 from robotruth.engine import audit_diff, audit_pr
+from robotruth.deploy import example_receipt as deploy_example_receipt
 from . import config
 from .store import FileStore, RedisStore, UpstashRestStore, ReceiptStore
 from .pendo import track as pendo_track
@@ -278,6 +279,14 @@ def repo_scorecard(owner: str, name: str) -> dict:
         "itemCount": len(items),
     })
     return {"repo": f"{owner}/{name}", "score": score, "items": items}
+
+
+@app.get("/api/deploy/example")
+def deploy_example() -> dict:
+    """The Deploy Receipt surface: a real, deterministic audit of an example
+    deployment manifest diff, computed by the same grader as the PR engine.
+    No model in the verdict path — the same primitive, a second surface."""
+    return deploy_example_receipt().model_dump()
 
 
 @app.get("/api/stats")
