@@ -5,7 +5,7 @@
 > story. **No fabricated usage numbers in any post** — this product is literally about not lying.
 > LinkedIn copy lives in `linkedin_posts.md`. These are the other surfaces.
 >
-> Sequence: post the **video** first (YouTube/Loom), then point every post at it + the live site.
+> Sequence: post the **video** first (YouTube/Vimeo/Youku — these are the ONLY hosts Devpost accepts; NOT Loom), then point every post at it + the live site.
 > Asset for image posts: a real receipt card (a SNEAKY catch reads best; HONEST·A is the clean fallback).
 
 ---
